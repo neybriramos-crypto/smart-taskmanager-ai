@@ -12,16 +12,16 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
-// Convertir el pool para usar Promesas (async/await), lo que hará el código del MVC mucho más limpio
+// Convertir el pool para usar Promesas (async/await)
 const db = pool.promise();
 
 // Pequeña prueba de conexión inicial
 pool.getConnection((err, connection) => {
     if (err) {
-        console.error('❌ Error al conectar con la base de datos MySQL:', err.message);
+        console.error('Error al conectar con la base de datos MySQL:', err.message);
     } else {
-        console.log('✅ Conexión exitosa a la base de datos MySQL.');
-        connection.release(); // Liberar la conexión de vuelta al pool
+        console.log('Conexión exitosa a la base de datos MySQL.');
+        connection.release();
     }
 });
 

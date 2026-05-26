@@ -1,7 +1,7 @@
 const Tarea = require('../models/tareaModel');
 
 const tareaController = {
-    // 1. C - Create (Crear Tarea)
+    // C - Create (Crear Tarea)
     crearTarea: async (req, res) => {
         const { titulo, descripcion, prioridad, fecha_limite } = req.body;
         const usuario_id = req.usuario.id; // Extraído del token por el middleware
@@ -22,7 +22,7 @@ const tareaController = {
         }
     },
 
-    // 2. R - Read (Obtener todas las tareas del usuario)
+    // R - Read (Obtener todas las tareas del usuario)
     obtenerTareas: async (req, res) => {
         const usuario_id = req.usuario.id;
 
@@ -35,7 +35,7 @@ const tareaController = {
         }
     },
 
-    // 3. U - Update (Actualizar Tarea)
+    // U - Update (Actualizar Tarea)
     actualizarTarea: async (req, res) => {
         const { id } = req.params; // ID de la tarea que viene en la URL
         const usuario_id = req.usuario.id;
@@ -52,7 +52,7 @@ const tareaController = {
         }
     },
 
-    // 4. D - Delete (Eliminar Tarea)
+    // D - Delete (Eliminar Tarea)
     eliminarTarea: async (req, res) => {
         const { id } = req.params;
         const usuario_id = req.usuario.id;

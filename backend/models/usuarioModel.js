@@ -1,7 +1,7 @@
 const db = require('../config/db');
 
 const Usuario = {
-    // 1. Buscar un usuario por su email (sirve para el Login y para validar en el Registro)
+    //Buscar un usuario por su email (sirve para el Login y para validar en el Registro)
     findByEmail: async (email) => {
         try {
             const [rows] = await db.query('SELECT * FROM usuarios WHERE email = ?', [email]);
@@ -11,7 +11,7 @@ const Usuario = {
         }
     },
 
-    // 2. Crear un nuevo usuario (sirve para el Registro)
+    // Crear un nuevo usuario (sirve para el Registro)
     create: async (nombre, email, passwordEncriptado) => {
         try {
             const [result] = await db.query(
