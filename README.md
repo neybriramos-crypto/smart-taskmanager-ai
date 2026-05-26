@@ -114,7 +114,3 @@ npm run dev
 
 - `DELETE /api/tareas/:id`
   - Elimina una tarea.
-
-## Nota
-
-Este README describe el backend. Si existe una interfaz frontend en otra carpeta, conéctala a esta API usando los endpoints descritos.
