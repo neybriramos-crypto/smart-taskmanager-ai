@@ -3,21 +3,21 @@ const router = express.Router();
 const tareaController = require('../controllers/tareaController');
 const verificarToken = require('../middlewares/authMiddleware');
 
-// Proteger todas las rutas de este archivo con el middleware de autenticación
 router.use(verificarToken);
 
-// Definición de las rutas del CRUD
+router.post('/', tareaController.crearTarea);
+router.get('/', tareaController.obtenerTareas);
+router.put('/:id', tareaController.actualizarTarea);
+router.delete('/:id', tareaController.eliminarTarea);
 
-// C - Crear (POST /api/tareas)
-router.post('/', tareaController.crearTarea); 
+// ==========================================
+// NUEVAS RUTAS INTELIGENTES PARA SUBTAREAS
+// ==========================================
+router.post('/:id/generar-subtareas', tareaController.generarSubtareasIA);
+router.get('/:id/subtareas', tareaController.obtenerSubtareas);
+router.patch('/subtareas/:subtareaId', tareaController.conmutarSubtarea);
 
-// R - Leer todas (GET /api/tareas)
-router.get('/', tareaController.obtenerTareas);   
-
-// U - Editar (PUT /api/tareas/:id)
-router.put('/:id', tareaController.actualizarTarea); 
-
-// D - Borrar (DELETE /api/tareas/:id)
-router.delete('/:id', tareaController.eliminarTarea); 
+// Priorizar un conjunto de tareas (body: { tareas: [...] })
+router.post('/priorizar', tareaController.priorizarTareasIA);
 
 module.exports = router;

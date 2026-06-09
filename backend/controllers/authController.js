@@ -3,7 +3,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const authController = {
-    // Lógica para registrar un usuario
     registrar: async (req, res) => {
         const { nombre, email, password } = req.body;
         if (!nombre || !email || !password) {
@@ -25,7 +24,6 @@ const authController = {
         }
     },
 
-    // iniciar sesión
     login: async (req, res) => {
         const { email, password } = req.body;
 
@@ -34,26 +32,22 @@ const authController = {
         }
 
         try {
-            // Verificar si el usuario existe por su email
             const usuario = await Usuario.findByEmail(email);
             if (!usuario) {
-                return res.status(400).json({ error: 'Credenciales inválidas' }); // No damos pistas de si lo que falló fue el correo o la clave
+                return res.status(400).json({ error: 'Credenciales inválidas' });
             }
 
-            // Comparar la contraseña ingresada con la encriptada en la BD
             const passwordCorrecto = await bcrypt.compare(password, usuario.password);
             if (!passwordCorrecto) {
                 return res.status(400).json({ error: 'Credenciales inválidas' });
             }
 
-            // Si todo es correcto, generar el Token JWT
             const token = jwt.sign(
                 { id: usuario.id, nombre: usuario.nombre },
                 process.env.JWT_SECRET,
-                { expiresIn: '4h' } // El token vencerá en 4 horas
+                { expiresIn: '4h' }
             );
 
-            // Responder con los datos del usuario y su token
             res.json({
                 mensaje: 'Login exitoso',
                 token,

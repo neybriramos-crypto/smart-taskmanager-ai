@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 
-// Ruta para el registro: POST /api/auth/register
-router.post('/register', authController.registrar);
+// Ruta para el registro: POST /api/auth/registro
+router.post('/registro', authController.registrar);
 
 // Ruta para el login: POST /api/auth/login
 router.post('/login', authController.login);

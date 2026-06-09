@@ -1,27 +1,37 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+const dotenv = require('dotenv');
 
-const db = require('./config/db');
-const authRoutes = require('./routes/authRoutes');
-// 1. Importar las rutas de tareas
-const tareaRoutes = require('./routes/tareaRoutes');
+dotenv.config();
 
 const app = express();
+const authRoutes = require('./routes/authRoutes');
+const tareaRoutes = require('./routes/tareaRoutes');
 
-app.use(cors());
+// Configuración estricta y abierta de CORS
+app.use(cors({
+  origin: 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(express.json());
 
-app.get('/', (req, res) => {
-    res.json({ mensaje: "¡Bienvenido a la API de Smart Task Manager AI!" });
-});
-
-// Enlaces de las rutas de la API
+// Rutas de la API
 app.use('/api/auth', authRoutes);
-// 2. Vincular la ruta base de tareas
 app.use('/api/tareas', tareaRoutes);
 
-const PORT = process.env.PORT || 5000;
+app.get('/', (req, res) => {
+  res.json({ mensaje: 'API de Smart Task Manager AI funcionando' });
+});
+
+// Manejo de rutas no definidas
+app.use((req, res) => {
+  res.status(404).json({ error: 'Ruta no encontrada' });
+});
+
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-    console.log(`Servidor corriendo con éxito en el puerto ${PORT}`);
+  console.log(`Servidor backend escuchando en http://localhost:${PORT}`);
 });

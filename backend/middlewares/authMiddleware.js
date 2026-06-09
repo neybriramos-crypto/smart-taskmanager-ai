@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 
 const verificarToken = (req, res, next) => {
     const tokenHeader = req.headers['authorization'];
-    
     const token = tokenHeader && tokenHeader.split(' ')[1];
 
     if (!token) {
@@ -10,7 +9,6 @@ const verificarToken = (req, res, next) => {
     }
 
     try {
-        // Verificar y descifrar el token con nuestra palabra secreta
         const verificado = jwt.verify(token, process.env.JWT_SECRET);
         req.usuario = verificado;
         next(); 
