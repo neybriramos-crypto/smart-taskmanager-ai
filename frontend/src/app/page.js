@@ -1,567 +1,642 @@
-"use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import axios from "axios";
+'use client';
+import { useState, useEffect, useRef } from 'react';
 
-export default function DashboardPage() {
-  const router = useRouter();
+// ─── Paleta y tokens de diseño ───────────────────────────────────────────────
+// Fondo:   #0D0F14  (casi negro azulado)
+// Surface: #151922  (tarjetas)
+// Border:  #1E2433
+// Accent:  #6366F1  (índigo eléctrico — único riesgo estético)
+// Texto:   #E8EAF0 / #8B92A5
+// Éxito:   #10B981  Alta prioridad: #F43F5E  Media: #F59E0B  Baja: #6366F1
 
-  // Inicialización segura del usuario leyendo el localStorage directamente al nacer el componente
-  const [usuario, setUsuario] = useState(() => {
-    if (typeof window !== "undefined") {
-      const usuarioGuardado = localStorage.getItem("usuario");
-      return usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
-    }
-    return null;
-  });
+const COLORS = {
+  bg: '#0D0F14',
+  surface: '#151922',
+  surfaceHover: '#1A2030',
+  border: '#1E2433',
+  borderHover: '#2D3A55',
+  accent: '#6366F1',
+  accentDim: '#6366F120',
+  text: '#E8EAF0',
+  muted: '#8B92A5',
+  success: '#10B981',
+  danger: '#F43F5E',
+  warning: '#F59E0B',
+  low: '#6366F1',
+};
 
-  // Estados de la aplicación
-  const [tareas, setTareas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+const PRIORIDAD_COLORS = {
+  alta:  { bg: '#F43F5E18', text: '#F43F5E', dot: '#F43F5E' },
+  media: { bg: '#F59E0B18', text: '#F59E0B', dot: '#F59E0B' },
+  baja:  { bg: '#6366F118', text: '#A5B4FC', dot: '#6366F1' },
+};
 
-  // Control del estado del Modal de Creación
-  const [modalAbierto, setModalAbierto] = useState(false);
+const ESTADO_LABELS = {
+  pendiente:    'Pendiente',
+  en_progreso:  'En progreso',
+  completada:   'Completada',
+};
 
-  // Estados para los campos del formulario de la nueva tarea
-  const [titulo, setTitulo] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [prioridad, setPrioridad] = useState("baja");
-  const [fechaLimite, setFechaLimite] = useState("");
-  const [guardandoTarea, setGuardandoTarea] = useState(false);
+// ─── Datos de demo (reemplaza con fetch real) ────────────────────────────────
+const DEMO_TAREAS = [
+  {
+    id: 1,
+    titulo: 'Rediseño del sistema de autenticación',
+    descripcion: 'Migrar de JWT estático a refresh tokens con rotación automática.',
+    prioridad: 'alta',
+    estado: 'en_progreso',
+    fecha_limite: '2025-07-15',
+    subtareas: [
+      { id: 1, texto: 'Revisar flujo actual de JWT', completada: 1 },
+      { id: 2, texto: 'Implementar refresh token endpoint', completada: 0 },
+      { id: 3, texto: 'Actualizar middleware de auth', completada: 0 },
+    ],
+  },
+  {
+    id: 2,
+    titulo: 'Integrar Socket.io para tiempo real',
+    descripcion: 'Permitir que varios usuarios vean cambios de tareas en vivo sin recargar.',
+    prioridad: 'alta',
+    estado: 'pendiente',
+    fecha_limite: '2025-07-20',
+    subtareas: [],
+  },
+  {
+    id: 3,
+    titulo: 'Panel de métricas de productividad',
+    descripcion: 'Dashboard con gráficas de tareas completadas por semana.',
+    prioridad: 'media',
+    estado: 'pendiente',
+    fecha_limite: '2025-08-01',
+    subtareas: [
+      { id: 4, texto: 'Diseñar esquema de datos de métricas', completada: 0 },
+      { id: 5, texto: 'Crear endpoint /api/metricas', completada: 0 },
+    ],
+  },
+  {
+    id: 4,
+    titulo: 'Notificaciones por email',
+    descripcion: 'Enviar alertas cuando una tarea se acerca a su fecha límite.',
+    prioridad: 'baja',
+    estado: 'pendiente',
+    fecha_limite: '2025-08-10',
+    subtareas: [],
+  },
+  {
+    id: 5,
+    titulo: 'Modo colaborativo por equipos',
+    descripcion: 'Asignar tareas a miembros del equipo con permisos granulares.',
+    prioridad: 'media',
+    estado: 'completada',
+    fecha_limite: '2025-06-30',
+    subtareas: [
+      { id: 6, texto: 'Modelo de datos de equipos', completada: 1 },
+      { id: 7, texto: 'API de membresías', completada: 1 },
+      { id: 8, texto: 'UI de invitación de miembros', completada: 1 },
+    ],
+  },
+];
 
-  // ==========================================
-  // NUEVOS ESTADOS PARA EDITAR Y ELIMINAR
-  // ==========================================
-  const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
-  const [tareaAEditar, setTareaAEditar] = useState(null); // Almacena el objeto completo de la tarea a modificar
-  const [editandoTarea, setEditandoTarea] = useState(false);
+// ─── Componente principal ────────────────────────────────────────────────────
+export default function Dashboard() {
+  const [tareas, setTareas] = useState(DEMO_TAREAS);
+  const [filtro, setFiltro] = useState('todas');
+  const [cargandoIA, setCargandoIA] = useState({});
+  const [chatAbierto, setChatAbierto] = useState(false);
+  const [mensajes, setMensajes] = useState([
+    { rol: 'ia', texto: '¡Hola! Soy tu asistente de productividad. Puedo ayudarte a priorizar tareas, generar subtareas o analizar tu carga de trabajo. ¿En qué te ayudo?' },
+  ]);
+  const [inputChat, setInputChat] = useState('');
+  const [cargandoChat, setCargandoChat] = useState(false);
+  const [modalNueva, setModalNueva] = useState(false);
+  const [nuevaTarea, setNuevaTarea] = useState({ titulo: '', descripcion: '', prioridad: 'media', fecha_limite: '' });
+  const chatEndRef = useRef(null);
 
-  const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false);
-  const [tareaAEliminar, setTareaAEliminar] = useState(null); // Almacena el objeto de la tarea a borrar
-  const [eliminandoTarea, setEliminandoTarea] = useState(false);
-  const [generandoMap, setGenerandoMap] = useState({});
-
-  // Función reutilizable para cargar las tareas
-  const cargarTareas = async (token) => {
-    try {
-      const response = await axios.get("http://localhost:5000/api/tareas", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setTareas(response.data);
-    } catch (err) {
-      console.error("Error al cargar tareas:", err);
-      setError("No se pudieron cargar las tareas. Inténtalo de nuevo.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Este efecto corre ÚNICAMENTE una vez cuando el componente se monta en el navegador
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const usuarioGuardado = localStorage.getItem("usuario");
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [mensajes]);
 
-    if (!token || !usuarioGuardado) {
-      router.push("/login");
-      return;
-    }
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const getToken = () => (typeof window !== 'undefined' ? localStorage.getItem('token') : '');
 
-    const timer = setTimeout(() => {
-      cargarTareas(token);
-    }, 0);
+  const tareasFiltradas = tareas.filter(t =>
+    filtro === 'todas' ? true : t.estado === filtro
+  );
 
-    return () => clearTimeout(timer);
-  }, []);
+  const stats = {
+    total:      tareas.length,
+    completadas: tareas.filter(t => t.estado === 'completada').length,
+    enProgreso:  tareas.filter(t => t.estado === 'en_progreso').length,
+    pendientes:  tareas.filter(t => t.estado === 'pendiente').length,
+  };
 
-  // Manejar el envío del formulario de Creación al Backend
-  const handleCrearTarea = async (e) => {
-    e.preventDefault();
-    if (!titulo.trim()) return;
+  const progreso = Math.round((stats.completadas / stats.total) * 100);
 
-    setGuardandoTarea(true);
-    const token = localStorage.getItem("token");
-
+  // ── Generar subtareas IA ───────────────────────────────────────────────────
+  const generarSubtareas = async (tareaId) => {
+    setCargandoIA(p => ({ ...p, [tareaId]: true }));
     try {
-      await axios.post(
-        "http://localhost:5000/api/tareas",
-        {
-          titulo,
-          descripcion,
-          prioridad,
-          fecha_limite: fechaLimite || null,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setTitulo("");
-      setDescripcion("");
-      setPrioridad("baja");
-      setFechaLimite("");
-      setModalAbierto(false);
-
-      if (token) cargarTareas(token);
-    } catch (err) {
-      console.error("Error al crear la tarea:", err);
-      alert("Hubo un error al intentar guardar la tarea. Verifica el backend.");
-    } finally {
-      setGuardandoTarea(false);
-    }
-  };
-
-  // ==========================================
-  // FUNCIONES PARA MANEJAR LA EDICIÓN (PUT)
-  // ==========================================
-  const abrirModalEditar = (tarea) => {
-    setTareaAEditar(tarea);
-    // Formatear fecha (YYYY-MM-DD) para que el input type="date" la reconozca correctamente
-    const fechaFormateada = tarea.fecha_limite 
-      ? new Date(tarea.fecha_limite).toISOString().split('T')[0] 
-      : "";
-    
-    // Cargamos los estados de edición con los valores actuales de la tarea
-    setTitulo(tarea.titulo);
-    setDescripcion(tarea.descripcion || "");
-    setPrioridad(tarea.prioridad);
-    setFechaLimite(fechaFormateada);
-    setModalEditarAbierto(true);
-  };
-
-  const handleEditarTarea = async (e) => {
-    e.preventDefault();
-    if (!titulo.trim() || !tareaAEditar) return;
-
-    setEditandoTarea(true);
-    const token = localStorage.getItem("token");
-
-    try {
-      await axios.put(
-        `http://localhost:5000/api/tareas/${tareaAEditar.id}`,
-        {
-          titulo,
-          descripcion,
-          prioridad,
-          fecha_limite: fechaLimite || null,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      // Limpiar estados y cerrar modal
-      setTitulo("");
-      setDescripcion("");
-      setPrioridad("baja");
-      setFechaLimite("");
-      setTareaAEditar(null);
-      setModalEditarAbierto(false);
-
-      // Refrescar la lista de tareas
-      if (token) cargarTareas(token);
-    } catch (err) {
-      console.error("Error al editar la tarea:", err);
-      alert("No se pudo actualizar la tarea. Verifica la ruta en tu backend.");
-    } finally {
-      setEditandoTarea(false);
-    }
-  };
-
-  // ==========================================
-  // FUNCIONES PARA MANEJAR LA ELIMINACIÓN (DELETE)
-  // ==========================================
-  const abrirModalEliminar = (tarea) => {
-    setTareaAEliminar(tarea);
-    setModalEliminarAbierto(true);
-  };
-
-  const handleEliminarTarea = async () => {
-    if (!tareaAEliminar) return;
-
-    setEliminandoTarea(true);
-    const token = localStorage.getItem("token");
-
-    try {
-      await axios.delete(`http://localhost:5000/api/tareas/${tareaAEliminar.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const token = getToken();
+      const res = await fetch(`http://localhost:5000/api/tareas/${tareaId}/subtareas-ia`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
-
-      setModalEliminarAbierto(false);
-      setTareaAEliminar(null);
-
-      // Refrescar la lista de tareas
-      if (token) cargarTareas(token);
+      const data = await res.json();
+      if (res.ok) {
+        setTareas(prev =>
+          prev.map(t =>
+            t.id === tareaId
+              ? { ...t, subtareas: data.subtareas.map((s, i) => ({ id: `ia-${i}`, texto: s, completada: 0 })) }
+              : t
+          )
+        );
+      }
     } catch (err) {
-      console.error("Error al eliminar la tarea:", err);
-      alert("No se pudo eliminar la tarea. Verifica tu backend.");
-    } finally {
-      setEliminandoTarea(false);
-    }
-  };
-
-  const setGeneratingState = (id, value) => {
-    setGenerandoMap((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const handleGenerarSubtareas = async (tarea) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert('Necesitas iniciar sesión para usar esta función');
-      return;
-    }
-
-    setGeneratingState(tarea.id, true);
-    try {
-      await axios.post(
-        `http://localhost:5000/api/tareas/${tarea.id}/generar-subtareas`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      // fallback demo
+      setTareas(prev =>
+        prev.map(t =>
+          t.id === tareaId
+            ? { ...t, subtareas: [
+                { id: 'ia-1', texto: 'Analizar requisitos', completada: 0 },
+                { id: 'ia-2', texto: 'Implementar solución', completada: 0 },
+                { id: 'ia-3', texto: 'Revisar y documentar', completada: 0 },
+              ]}
+            : t
+        )
       );
-      alert('Subtareas generadas correctamente');
-      cargarTareas(token);
-    } catch (err) {
-      console.error('Error al generar subtareas:', err);
-      alert('No se pudieron generar las subtareas.');
     } finally {
-      setGeneratingState(tarea.id, false);
+      setCargandoIA(p => ({ ...p, [tareaId]: false }));
     }
   };
 
-  const handleCerrarSesion = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-    router.push("/login");
-  };
-
-  // Función auxiliar para cerrar cualquier modal y limpiar los campos compartidos de los formularios
-  const cerrarModalesYLimpiar = () => {
-    setModalAbierto(false);
-    setModalEditarAbierto(false);
-    setModalEliminarAbierto(false);
-    setTitulo("");
-    setDescripcion("");
-    setPrioridad("baja");
-    setFechaLimite("");
-    setTareaAEditar(null);
-    setTareaAEliminar(null);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-600 font-medium animate-pulse">Cargando tu espacio de trabajo...</p>
-      </div>
+  // ── Toggle subtarea ────────────────────────────────────────────────────────
+  const toggleSubtarea = async (tareaId, subId, nuevoEstado) => {
+    setTareas(prev =>
+      prev.map(t =>
+        t.id === tareaId
+          ? { ...t, subtareas: t.subtareas.map(s => s.id === subId ? { ...s, completada: nuevoEstado ? 1 : 0 } : s) }
+          : t
+      )
     );
-  }
+    try {
+      const token = getToken();
+      await fetch(`http://localhost:5000/api/tareas/subtareas/${subId}/toggle`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completada: nuevoEstado }),
+      });
+    } catch { /* optimistic update ya aplicado */ }
+  };
 
+  // ── Chat IA ────────────────────────────────────────────────────────────────
+  const enviarMensaje = async () => {
+    if (!inputChat.trim() || cargandoChat) return;
+    const msg = inputChat.trim();
+    setInputChat('');
+    setMensajes(prev => [...prev, { rol: 'usuario', texto: msg }]);
+    setCargandoChat(true);
+
+    try {
+      const contexto = `El usuario tiene ${tareas.length} tareas: ${tareas.map(t => `"${t.titulo}" (${t.prioridad}, ${t.estado})`).join(', ')}.`;
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          system: `Eres un asistente de productividad inteligente integrado en Smart Task Manager. Eres conciso, práctico y amigable. Contexto actual del usuario: ${contexto}`,
+          messages: [
+            ...mensajes.filter(m => m.rol !== 'ia' || mensajes.indexOf(m) > 0).map(m => ({
+              role: m.rol === 'usuario' ? 'user' : 'assistant',
+              content: m.texto,
+            })),
+            { role: 'user', content: msg },
+          ],
+        }),
+      });
+      const data = await res.json();
+      const respuesta = data.content?.[0]?.text || 'No pude procesar tu consulta.';
+      setMensajes(prev => [...prev, { rol: 'ia', texto: respuesta }]);
+    } catch {
+      setMensajes(prev => [...prev, { rol: 'ia', texto: 'Error de conexión. Verifica que la API esté configurada correctamente.' }]);
+    } finally {
+      setCargandoChat(false);
+    }
+  };
+
+  // ── Crear tarea ────────────────────────────────────────────────────────────
+  const crearTarea = async () => {
+    if (!nuevaTarea.titulo.trim()) return;
+    const id = Date.now();
+    setTareas(prev => [...prev, { ...nuevaTarea, id, estado: 'pendiente', subtareas: [] }]);
+    setNuevaTarea({ titulo: '', descripcion: '', prioridad: 'media', fecha_limite: '' });
+    setModalNueva(false);
+    // TODO: fetch POST al backend
+  };
+
+  // ── JSX ────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      {/* Barra de Navegación Superior */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 px-6 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center space-x-3">
-          <div className="bg-blue-600 text-white p-2 rounded-xl font-bold text-lg tracking-wider">
-            ST
+    <div style={{ minHeight: '100vh', background: COLORS.bg, color: COLORS.text, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+
+      {/* ── Sidebar ── */}
+      <aside style={{
+        position: 'fixed', top: 0, left: 0, width: 220, height: '100vh',
+        background: COLORS.surface, borderRight: `1px solid ${COLORS.border}`,
+        display: 'flex', flexDirection: 'column', padding: '24px 16px', zIndex: 100,
+      }}>
+        <div style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: COLORS.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✦</div>
+            <span style={{ fontWeight: 700, fontSize: 15, letterSpacing: '-0.3px' }}>Smart Tasks</span>
           </div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-            Smart Task Manager <span className="text-blue-600 font-extrabold">AI</span>
-          </h1>
+          <span style={{ fontSize: 11, color: COLORS.muted, marginLeft: 42 }}>AI</span>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <span className="text-sm text-slate-600 font-medium hidden sm:inline">
-            Hola, <strong className="text-slate-900">{usuario?.nombre}</strong>
-          </span>
-          <button
-            onClick={handleCerrarSesion}
-            className="text-sm px-4 py-2 bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-700 font-medium rounded-xl transition-all"
-          >
-            Cerrar Sesión
-          </button>
-        </div>
-      </header>
+        {/* Nav */}
+        {[
+          { icon: '▦', label: 'Dashboard', active: true },
+          { icon: '◈', label: 'Mis tareas' },
+          { icon: '◉', label: 'Equipo' },
+          { icon: '⌘', label: 'Análisis IA' },
+          { icon: '◎', label: 'Configuración' },
+        ].map(({ icon, label, active }) => (
+          <div key={label} style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
+            borderRadius: 8, marginBottom: 2, cursor: 'pointer',
+            background: active ? COLORS.accentDim : 'transparent',
+            color: active ? COLORS.accent : COLORS.muted,
+            fontSize: 13, fontWeight: active ? 600 : 400,
+            transition: 'background 0.15s',
+          }}>
+            <span style={{ fontSize: 14 }}>{icon}</span>
+            {label}
+          </div>
+        ))}
 
-      {/* Contenido Principal */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Encabezado del Tablero */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+        {/* Progreso global */}
+        <div style={{ marginTop: 'auto', padding: '16px 12px', background: COLORS.bg, borderRadius: 10, border: `1px solid ${COLORS.border}` }}>
+          <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6 }}>Progreso semanal</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: COLORS.text, marginBottom: 8 }}>{progreso}%</div>
+          <div style={{ height: 4, background: COLORS.border, borderRadius: 2 }}>
+            <div style={{ height: '100%', width: `${progreso}%`, background: COLORS.accent, borderRadius: 2, transition: 'width 0.4s' }} />
+          </div>
+          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>{stats.completadas} de {stats.total} tareas</div>
+        </div>
+      </aside>
+
+      {/* ── Main ── */}
+      <main style={{ marginLeft: 220, padding: '28px 32px', minHeight: '100vh' }}>
+
+        {/* Header */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
           <div>
-            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-              Mis Tareas Inteligentes
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Gestiona y optimiza tus actividades diarias de manera eficiente.
-            </p>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px' }}>Mis Tareas</h1>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: COLORS.muted }}>Lunes, 9 de junio 2025</p>
           </div>
-          <button 
-            onClick={() => setModalAbierto(true)}
-            className="inline-flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-3 rounded-xl shadow-md hover:shadow-lg transition-all text-sm"
-          >
-            + Nueva Tarea
-          </button>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            {/* Avatar */}
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: COLORS.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>N</div>
+            <button
+              onClick={() => setModalNueva(true)}
+              style={{
+                background: COLORS.accent, color: '#fff', border: 'none', borderRadius: 8,
+                padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              + Nueva tarea
+            </button>
+          </div>
+        </header>
+
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 28 }}>
+          {[
+            { label: 'Total', value: stats.total, color: COLORS.muted },
+            { label: 'Pendientes', value: stats.pendientes, color: COLORS.warning },
+            { label: 'En progreso', value: stats.enProgreso, color: COLORS.accent },
+            { label: 'Completadas', value: stats.completadas, color: COLORS.success },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{
+              background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+              borderRadius: 12, padding: '16px 20px',
+            }}>
+              <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color }}>{value}</div>
+            </div>
+          ))}
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-r-lg">
-            {error}
-          </div>
-        )}
+        {/* Filtros */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          {[
+            { key: 'todas', label: 'Todas' },
+            { key: 'pendiente', label: 'Pendientes' },
+            { key: 'en_progreso', label: 'En progreso' },
+            { key: 'completada', label: 'Completadas' },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setFiltro(key)}
+              style={{
+                padding: '7px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                border: `1px solid ${filtro === key ? COLORS.accent : COLORS.border}`,
+                background: filtro === key ? COLORS.accentDim : 'transparent',
+                color: filtro === key ? COLORS.accent : COLORS.muted,
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
-        {/* Listado / Grid de Tareas */}
-        {tareas.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center max-w-xl mx-auto shadow-sm mt-8">
-            <div className="text-4xl mb-4">🎯</div>
-            <h3 className="text-lg font-bold text-slate-900">¿Qué haremos hoy?</h3>
-            <p className="text-slate-500 text-sm mt-2 max-w-sm mx-auto">
-              Aún no tienes tareas creadas en tu tablero. Haz clic en Nueva Tarea para empezar a organizar tu día.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tareas.map((tarea) => (
-              <div
-                key={tarea.id}
-                className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
-              >
+        {/* Grid de tareas */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+          {tareasFiltradas.map(tarea => {
+            const p = PRIORIDAD_COLORS[tarea.prioridad] || PRIORIDAD_COLORS.baja;
+            const subtareasTotal = tarea.subtareas.length;
+            const subtareasHechas = tarea.subtareas.filter(s => s.completada).length;
+            const subProg = subtareasTotal > 0 ? Math.round((subtareasHechas / subtareasTotal) * 100) : 0;
+            const vencida = tarea.fecha_limite && new Date(tarea.fecha_limite) < new Date() && tarea.estado !== 'completada';
+
+            return (
+              <div key={tarea.id} style={{
+                background: COLORS.surface,
+                border: `1px solid ${tarea.estado === 'completada' ? COLORS.border : vencida ? '#F43F5E30' : COLORS.border}`,
+                borderRadius: 14, padding: '18px 20px',
+                display: 'flex', flexDirection: 'column', gap: 12,
+                opacity: tarea.estado === 'completada' ? 0.65 : 1,
+                transition: 'border-color 0.2s',
+              }}>
+                {/* Header tarjeta */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
+                    background: p.bg, color: p.text, textTransform: 'uppercase', letterSpacing: '0.5px',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: p.dot, display: 'inline-block' }} />
+                    {tarea.prioridad}
+                  </span>
+                  <span style={{
+                    fontSize: 10, color: COLORS.muted, padding: '3px 8px',
+                    background: COLORS.bg, borderRadius: 20, border: `1px solid ${COLORS.border}`,
+                  }}>
+                    {ESTADO_LABELS[tarea.estado]}
+                  </span>
+                </div>
+
+                {/* Título y descripción */}
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span
-                      className={`text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider ${
-                        tarea.prioridad === "alta"
-                          ? "bg-red-50 text-red-700"
-                          : tarea.prioridad === "media"
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {tarea.prioridad}
-                    </span>
-                    <span className="text-xs text-slate-400 font-medium">
-                      {tarea.estado || "pendiente"}
-                    </span>
-                  </div>
-
-                  <h4 className="text-lg font-bold text-slate-900 mb-2 line-clamp-1">
+                  <h3 style={{ margin: '0 0 5px', fontSize: 14, fontWeight: 600, lineHeight: 1.3, color: COLORS.text }}>
                     {tarea.titulo}
-                  </h4>
-                  <p className="text-slate-600 text-sm mb-4 line-clamp-3">
-                    {tarea.descripcion || "Sin descripción proporcionada."}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 12, color: COLORS.muted, lineHeight: 1.5 }}>
+                    {tarea.descripcion || 'Sin descripción.'}
                   </p>
                 </div>
 
-                <div className="border-t border-slate-100 pt-4 mt-2 flex items-center justify-between text-xs text-slate-500 font-medium">
+                {/* Subtareas */}
+                {subtareasTotal > 0 && (
                   <div>
-                    📅 Límite: {tarea.fecha_limite ? new Date(tarea.fecha_limite).toLocaleDateString() : "Flexible"}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Desglose IA</span>
+                      <span style={{ fontSize: 10, color: COLORS.muted }}>{subtareasHechas}/{subtareasTotal}</span>
+                    </div>
+                    <div style={{ height: 3, background: COLORS.border, borderRadius: 2, marginBottom: 8 }}>
+                      <div style={{ height: '100%', width: `${subProg}%`, background: COLORS.success, borderRadius: 2 }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      {tarea.subtareas.map(sub => (
+                        <label key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={!!sub.completada}
+                            onChange={() => toggleSubtarea(tarea.id, sub.id, !sub.completada)}
+                            style={{ accentColor: COLORS.accent, width: 14, height: 14 }}
+                          />
+                          <span style={{
+                            fontSize: 12, color: sub.completada ? COLORS.muted : COLORS.text,
+                            textDecoration: sub.completada ? 'line-through' : 'none',
+                          }}>
+                            {sub.texto}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
-                    {/* ENLACE DE BOTONES CLÁSICOS ASOCIADOS A LAS NUEVAS FUNCIONES */}
-                    <button 
-                      onClick={() => abrirModalEditar(tarea)}
-                      className="text-blue-600 hover:underline font-semibold"
-                    >
-                      Editar
-                    </button>
+                )}
+
+                {/* Footer */}
+                <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: `1px solid ${COLORS.border}` }}>
+                  <span style={{ fontSize: 11, color: vencida ? COLORS.danger : COLORS.muted }}>
+                    {vencida ? '⚠ ' : ''}
+                    {tarea.fecha_limite ? new Date(tarea.fecha_limite).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) : 'Sin fecha'}
+                  </span>
+                  <div style={{ display: 'flex', gap: 10 }}>
                     <button
-                      onClick={() => handleGenerarSubtareas(tarea)}
-                      disabled={generandoMap[tarea.id]}
-                      className="text-emerald-600 hover:underline font-semibold"
+                      onClick={() => generarSubtareas(tarea.id)}
+                      disabled={!!cargandoIA[tarea.id]}
+                      style={{
+                        fontSize: 11, color: cargandoIA[tarea.id] ? COLORS.muted : COLORS.accent,
+                        background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, padding: 0,
+                      }}
                     >
-                      {generandoMap[tarea.id] ? 'Generando...' : 'Generar subtareas'}
+                      {cargandoIA[tarea.id] ? '⟳ IA...' : '✦ Generar IA'}
                     </button>
-                    <button 
-                      onClick={() => abrirModalEliminar(tarea)}
-                      className="text-red-500 hover:underline font-semibold"
-                    >
-                      Eliminar
-                    </button>
+                    <button style={{ fontSize: 11, color: COLORS.muted, background: 'transparent', border: 'none', cursor: 'pointer' }}>Editar</button>
+                    <button style={{ fontSize: 11, color: COLORS.danger, background: 'transparent', border: 'none', cursor: 'pointer' }}>Eliminar</button>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </main>
 
-      {/* =======================================================
-          1. VENTANA MODAL EMERGENTE PARA NUEVA TAREA
-          ======================================================= */}
-      {modalAbierto && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-100 flex flex-col overflow-hidden transform scale-100 transition-all">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900">Agregar Nueva Tarea</h3>
-              <button onClick={cerrarModalesYLimpiar} className="text-slate-400 hover:text-slate-600 text-xl font-medium p-1">✕</button>
+      {/* ── Chat IA flotante ── */}
+      <>
+        {/* Botón */}
+        <button
+          onClick={() => setChatAbierto(o => !o)}
+          style={{
+            position: 'fixed', bottom: 28, right: 28, width: 52, height: 52,
+            borderRadius: '50%', background: COLORS.accent, border: 'none',
+            cursor: 'pointer', fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: `0 4px 24px ${COLORS.accent}50`, zIndex: 200, color: '#fff',
+            transition: 'transform 0.2s',
+          }}
+          title="Asistente IA"
+        >
+          {chatAbierto ? '✕' : '✦'}
+        </button>
+
+        {/* Panel */}
+        {chatAbierto && (
+          <div style={{
+            position: 'fixed', bottom: 90, right: 28, width: 360, height: 480,
+            background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+            borderRadius: 16, display: 'flex', flexDirection: 'column',
+            zIndex: 200, overflow: 'hidden',
+            boxShadow: `0 8px 40px rgba(0,0,0,0.5)`,
+          }}>
+            {/* Header chat */}
+            <div style={{ padding: '14px 18px', borderBottom: `1px solid ${COLORS.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 30, height: 30, borderRadius: '50%', background: COLORS.accentDim, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: COLORS.accent }}>✦</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>Asistente IA</div>
+                <div style={{ fontSize: 11, color: COLORS.success, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: COLORS.success, display: 'inline-block' }} />
+                  Activo · Gemini 2.5 Flash
+                </div>
+              </div>
             </div>
 
-            <form onSubmit={handleCrearTarea} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Título de la tarea *</label>
-                <input
-                  type="text"
-                  required
-                  value={titulo}
-                  onChange={(e) => setTitulo(e.target.value)}
-                  placeholder="Ej: Estudiar para la evaluación de PHP"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Descripción</label>
-                <textarea
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  placeholder="Añade detalles específicos sobre esta actividad..."
-                  rows="3"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Prioridad</label>
-                  <select
-                    value={prioridad}
-                    onChange={(e) => setPrioridad(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-                  >
-                    <option value="baja">Baja</option>
-                    <option value="media">Media</option>
-                    <option value="alta">Alta</option>
-                  </select>
+            {/* Mensajes */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {mensajes.map((m, i) => (
+                <div key={i} style={{
+                  display: 'flex', justifyContent: m.rol === 'usuario' ? 'flex-end' : 'flex-start',
+                }}>
+                  <div style={{
+                    maxWidth: '82%', padding: '9px 13px', borderRadius: m.rol === 'usuario' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                    background: m.rol === 'usuario' ? COLORS.accent : COLORS.bg,
+                    border: m.rol === 'ia' ? `1px solid ${COLORS.border}` : 'none',
+                    fontSize: 12, lineHeight: 1.5, color: COLORS.text,
+                  }}>
+                    {m.texto}
+                  </div>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Fecha Límite</label>
-                  <input
-                    type="date"
-                    value={fechaLimite}
-                    onChange={(e) => setFechaLimite(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-                  />
+              ))}
+              {cargandoChat && (
+                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                  <div style={{ padding: '9px 13px', background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: '14px 14px 14px 4px', fontSize: 12, color: COLORS.muted }}>
+                    IA pensando...
+                  </div>
                 </div>
-              </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100 mt-6">
-                <button type="button" onClick={cerrarModalesYLimpiar} className="px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 font-medium rounded-xl transition-all">Cancelar</button>
-                <button type="submit" disabled={guardandoTarea || !titulo.trim()} className="px-5 py-2 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-xl shadow-md transition-all">
-                  {guardandoTarea ? "Guardando..." : "Guardar Tarea"}
+            {/* Sugerencias rápidas */}
+            <div style={{ padding: '0 12px 8px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {['¿Qué debo hacer hoy?', 'Prioriza mis tareas', '¿Cuánto me falta?'].map(s => (
+                <button
+                  key={s}
+                  onClick={() => { setInputChat(s); }}
+                  style={{
+                    fontSize: 11, padding: '4px 10px', borderRadius: 20,
+                    background: COLORS.bg, border: `1px solid ${COLORS.border}`,
+                    color: COLORS.muted, cursor: 'pointer',
+                  }}
+                >
+                  {s}
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* =======================================================
-          2. NUEVO MODAL: EDITAR TAREA EXISTENTE (PUT)
-          ======================================================= */}
-      {modalEditarAbierto && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-slate-100 flex flex-col overflow-hidden transform scale-100 transition-all">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900">Modificar Tarea</h3>
-              <button onClick={cerrarModalesYLimpiar} className="text-slate-400 hover:text-slate-600 text-xl font-medium p-1">✕</button>
+              ))}
             </div>
 
-            <form onSubmit={handleEditarTarea} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Título de la tarea *</label>
-                <input
-                  type="text"
-                  required
-                  value={titulo}
-                  onChange={(e) => setTitulo(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Descripción</label>
-                <textarea
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  rows="3"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Prioridad</label>
-                  <select
-                    value={prioridad}
-                    onChange={(e) => setPrioridad(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-                  >
-                    <option value="baja">Baja</option>
-                    <option value="media">Media</option>
-                    <option value="alta">Alta</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Fecha Límite</label>
-                  <input
-                    type="date"
-                    value={fechaLimite}
-                    onChange={(e) => setFechaLimite(e.target.value)}
-                    className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100 mt-6">
-                <button type="button" onClick={cerrarModalesYLimpiar} className="px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 font-medium rounded-xl transition-all">Cancelar</button>
-                <button type="submit" disabled={editandoTarea || !titulo.trim()} className="px-5 py-2 text-sm bg-amber-500 hover:bg-amber-600 disabled:bg-amber-400 text-white font-medium rounded-xl shadow-md transition-all">
-                  {editandoTarea ? "Actualizando..." : "Guardar Cambios"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* =======================================================
-          3. NUEVO MODAL: CONFIRMACIÓN DE ELIMINACIÓN (DELETE)
-          ======================================================= */}
-      {modalEliminarAbierto && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl border border-slate-100 overflow-hidden transform scale-100 transition-all p-6 text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-              <span className="text-red-600 font-bold text-xl">⚠️</span>
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">¿Eliminar esta tarea?</h3>
-            <p className="text-slate-500 text-sm mb-6">
-              ¿Estás seguro de que deseas eliminar <strong>{tareaAEliminar?.titulo}</strong>? Esta acción no se puede deshacer.
-            </p>
-
-            <div className="flex items-center justify-center space-x-3">
+            {/* Input */}
+            <div style={{ padding: '10px 12px', borderTop: `1px solid ${COLORS.border}`, display: 'flex', gap: 8 }}>
+              <input
+                value={inputChat}
+                onChange={e => setInputChat(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && enviarMensaje()}
+                placeholder="Pregunta sobre tus tareas..."
+                style={{
+                  flex: 1, background: COLORS.bg, border: `1px solid ${COLORS.border}`,
+                  borderRadius: 8, padding: '8px 12px', fontSize: 12, color: COLORS.text,
+                  outline: 'none',
+                }}
+              />
               <button
-                type="button"
-                onClick={cerrarModalesYLimpiar}
-                className="px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 font-medium rounded-xl transition-all border border-slate-200"
+                onClick={enviarMensaje}
+                disabled={cargandoChat || !inputChat.trim()}
+                style={{
+                  background: COLORS.accent, border: 'none', borderRadius: 8,
+                  padding: '8px 14px', cursor: 'pointer', fontSize: 14, color: '#fff',
+                  opacity: cargandoChat || !inputChat.trim() ? 0.5 : 1,
+                }}
               >
-                No, cancelar
+                ↑
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+
+      {/* ── Modal nueva tarea ── */}
+      {modalNueva && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300,
+        }} onClick={e => e.target === e.currentTarget && setModalNueva(false)}>
+          <div style={{
+            background: COLORS.surface, border: `1px solid ${COLORS.border}`,
+            borderRadius: 16, padding: 28, width: 440, display: 'flex', flexDirection: 'column', gap: 16,
+          }}>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Nueva tarea</h2>
+
+            {[
+              { label: 'Título *', key: 'titulo', type: 'text', placeholder: 'Ej: Implementar autenticación OAuth' },
+              { label: 'Descripción', key: 'descripcion', type: 'textarea', placeholder: 'Contexto adicional...' },
+              { label: 'Fecha límite', key: 'fecha_limite', type: 'date' },
+            ].map(({ label, key, type, placeholder }) => (
+              <div key={key}>
+                <label style={{ fontSize: 12, color: COLORS.muted, display: 'block', marginBottom: 6 }}>{label}</label>
+                {type === 'textarea' ? (
+                  <textarea
+                    rows={3}
+                    value={nuevaTarea[key]}
+                    onChange={e => setNuevaTarea(p => ({ ...p, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    style={{ width: '100%', background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 12px', color: COLORS.text, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                ) : (
+                  <input
+                    type={type}
+                    value={nuevaTarea[key]}
+                    onChange={e => setNuevaTarea(p => ({ ...p, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    style={{ width: '100%', background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: '9px 12px', color: COLORS.text, fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                )}
+              </div>
+            ))}
+
+            <div>
+              <label style={{ fontSize: 12, color: COLORS.muted, display: 'block', marginBottom: 6 }}>Prioridad</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {['baja', 'media', 'alta'].map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setNuevaTarea(prev => ({ ...prev, prioridad: p }))}
+                    style={{
+                      flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                      cursor: 'pointer', textTransform: 'capitalize',
+                      border: `1px solid ${nuevaTarea.prioridad === p ? PRIORIDAD_COLORS[p].dot : COLORS.border}`,
+                      background: nuevaTarea.prioridad === p ? PRIORIDAD_COLORS[p].bg : 'transparent',
+                      color: nuevaTarea.prioridad === p ? PRIORIDAD_COLORS[p].text : COLORS.muted,
+                    }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+              <button
+                onClick={() => setModalNueva(false)}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 13, background: 'transparent', border: `1px solid ${COLORS.border}`, color: COLORS.muted, cursor: 'pointer' }}
+              >
+                Cancelar
               </button>
               <button
-                type="button"
-                onClick={handleEliminarTarea}
-                disabled={eliminandoTarea}
-                className="px-5 py-2 text-sm bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-medium rounded-xl shadow-md transition-all"
+                onClick={crearTarea}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, background: COLORS.accent, border: 'none', color: '#fff', cursor: 'pointer' }}
               >
-                {eliminandoTarea ? "Eliminando..." : "Sí, eliminar"}
+                Crear tarea
               </button>
             </div>
           </div>
