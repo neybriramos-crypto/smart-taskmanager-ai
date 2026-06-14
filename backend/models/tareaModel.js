@@ -1,60 +1,63 @@
 const db = require('../config/db');
 
 const Tarea = {
-    // C - Create: Insertar una nueva tarea en la BD
     create: async (usuario_id, titulo, descripcion, prioridad, fecha_limite) => {
-        try {
-            const [result] = await db.query(
-                'INSERT INTO tareas (usuario_id, titulo, descripcion, prioridad, fecha_limite) VALUES (?, ?, ?, ?, ?)',
-                [usuario_id, titulo, descripcion, prioridad, fecha_limite]
-            );
-            return result.insertId;
-        } catch (error) {
-            throw new Error('Error al crear la tarea en la BD: ' + error.message);
-        }
+        const [result] = await db.query(
+            `INSERT INTO tareas (usuario_id, titulo, descripcion, prioridad, fecha_limite)
+             VALUES (?, ?, ?, ?, ?)`,
+            [usuario_id, titulo, descripcion || null, prioridad || 'baja', fecha_limite || null]
+        );
+        return result.insertId;
     },
 
-    // R - Read: Obtener todas las tareas de un usuario específico
     findAllByUsuario: async (usuario_id) => {
-        try {
-            const [rows] = await db.query(
-                'SELECT * FROM tareas WHERE usuario_id = ? ORDER BY fecha_creacion DESC', 
-                [usuario_id]
-            );
-            return rows;
-        } catch (error) {
-            throw new Error('Error al obtener las tareas: ' + error.message);
-        }
+        const [rows] = await db.query(
+            `SELECT id, titulo, descripcion, prioridad, estado, fecha_limite, creado_en
+             FROM tareas
+             WHERE usuario_id = ?
+             ORDER BY
+               FIELD(prioridad, 'alta', 'media', 'baja'),
+               creado_en DESC`,
+            [usuario_id]
+        );
+        return rows;
     },
 
-    // U - Update: Actualizar una tarea (título, descripción, estado, prioridad, fecha límite)
-    update: async (id, usuario_id, datosActualizados) => {
-        const { titulo, descripcion, estado, prioridad, fecha_limite } = datosActualizados;
-        try {
-            const [result] = await db.query(
-                `UPDATE tareas 
-                 SET titulo = ?, descripcion = ?, estado = ?, prioridad = ?, fecha_limite = ? 
-                 WHERE id = ? AND usuario_id = ?`,
-                [titulo, descripcion, estado, prioridad, fecha_limite, id, usuario_id]
-            );
-            return result.affectedRows > 0;
-        } catch (error) {
-            throw new Error('Error al actualizar la tarea: ' + error.message);
-        }
+    findById: async (id, usuario_id) => {
+        const [rows] = await db.query(
+            `SELECT * FROM tareas WHERE id = ? AND usuario_id = ?`,
+            [id, usuario_id]
+        );
+        return rows[0] || null;
     },
 
-    // D - Delete: Eliminar una tarea por completo
+    update: async (id, usuario_id, datos) => {
+        const fields = [];
+        const values = [];
+
+        if (datos.titulo      !== undefined) { fields.push('titulo = ?');      values.push(datos.titulo); }
+        if (datos.descripcion !== undefined) { fields.push('descripcion = ?'); values.push(datos.descripcion); }
+        if (datos.prioridad   !== undefined) { fields.push('prioridad = ?');   values.push(datos.prioridad); }
+        if (datos.estado      !== undefined) { fields.push('estado = ?');      values.push(datos.estado); }
+        if (datos.fecha_limite !== undefined){ fields.push('fecha_limite = ?');values.push(datos.fecha_limite); }
+
+        if (fields.length === 0) return false;
+
+        values.push(id, usuario_id);
+        const [result] = await db.query(
+            `UPDATE tareas SET ${fields.join(', ')} WHERE id = ? AND usuario_id = ?`,
+            values
+        );
+        return result.affectedRows > 0;
+    },
+
     delete: async (id, usuario_id) => {
-        try {
-            const [result] = await db.query(
-                'DELETE FROM tareas WHERE id = ? AND usuario_id = ?', 
-                [id, usuario_id]
-            );
-            return result.affectedRows > 0;
-        } catch (error) {
-            throw new Error('Error al eliminar la tarea: ' + error.message);
-        }
-    }
+        const [result] = await db.query(
+            `DELETE FROM tareas WHERE id = ? AND usuario_id = ?`,
+            [id, usuario_id]
+        );
+        return result.affectedRows > 0;
+    },
 };
 
 module.exports = Tarea;

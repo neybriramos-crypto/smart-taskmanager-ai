@@ -1,72 +1,98 @@
-"use client";
-import { useState } from "react";
-import Link from "next/link";
+'use client';
+import { useState } from 'react';
+import Link from 'next/link';
 
-export default function RecuperarPage() {
-  const [email, setEmail] = useState("");
-  const [enviado, setEnviado] = useState(false);
+export default function Recuperar() {
+    const [email, setEmail]     = useState('');
+    const [enviado, setEnviado] = useState(false);
 
-  const handleRecuperar = (e) => {
-    e.preventDefault();
-    if (email.trim()) {
-      setEnviado(true);
-    }
-  };
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        // TODO: conectar con endpoint de recuperación de contraseña
+        setEnviado(true);
+    };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-        
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            ¿Olvidaste tu contraseña?
-          </h2>
-          <p className="text-sm text-slate-500 mt-2">
-            Ingresa tu correo electrónico y te enviaremos las instrucciones para restablecerla.
-          </p>
+    return (
+        <div style={styles.page}>
+            <div style={styles.card}>
+                <div style={styles.logo}>
+                    <div style={styles.logoBadge}>✦</div>
+                    <span style={styles.logoText}>Smart Tasks <span style={{ color: 'var(--accent)', fontWeight: 700 }}>AI</span></span>
+                </div>
+
+                {!enviado ? (
+                    <>
+                        <h1 style={styles.titulo}>Recuperar contraseña</h1>
+                        <p style={styles.subtitulo}>
+                            Ingresa tu correo y te enviaremos instrucciones para restablecer tu contraseña.
+                        </p>
+
+                        <form onSubmit={handleSubmit} style={styles.form}>
+                            <div style={styles.campo}>
+                                <label style={styles.label}>Correo electrónico</label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                    placeholder="tu@correo.com"
+                                    required
+                                    style={styles.input}
+                                />
+                            </div>
+                            <button type="submit" style={styles.boton}>
+                                Enviar instrucciones
+                            </button>
+                        </form>
+                    </>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <div style={{ fontSize: 40, marginBottom: 16 }}>📧</div>
+                        <h2 style={{ color: 'var(--text)', marginBottom: 10 }}>Correo enviado</h2>
+                        <p style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.6 }}>
+                            Si existe una cuenta con <strong style={{ color: 'var(--text)' }}>{email}</strong>,
+                            recibirás un correo con las instrucciones.
+                        </p>
+                    </div>
+                )}
+
+                <p style={styles.footer}>
+                    <Link href="/login" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                        ← Volver al login
+                    </Link>
+                </p>
+            </div>
         </div>
-
-        {enviado ? (
-          <div className="text-center space-y-4">
-            <div className="p-4 bg-emerald-50 text-emerald-800 text-sm rounded-xl border border-emerald-100">
-              ¡Listo! Si el correo coincide con una cuenta activa, recibirás un enlace de recuperación pronto.
-            </div>
-            <Link href="/login" className="inline-block mt-4 text-sm font-semibold text-blue-600 hover:underline">
-              Volver al Login
-            </Link>
-          </div>
-        ) : (
-          <form onSubmit={handleRecuperar} className="space-y-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Correo Electrónico
-              </label>
-              <input
-                type="email"
-                required
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                placeholder="ejemplo@correo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl shadow-lg transition-all text-center"
-            >
-              Enviar Enlace
-            </button>
-
-            <p className="text-center text-sm">
-              <Link href="/login" className="text-slate-500 hover:text-slate-800 transition-all text-medium hover:underline">
-                Volver al inicio de sesión
-              </Link>
-            </p>
-          </form>
-        )}
-
-      </div>
-    </div>
-  );
+    );
 }
+
+const styles = {
+    page: {
+        minHeight: '100vh', background: 'var(--bg)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+    },
+    card: {
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-xl)', padding: '40px 36px', width: '100%', maxWidth: 420,
+    },
+    logo: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28, justifyContent: 'center' },
+    logoBadge: {
+        width: 34, height: 34, borderRadius: 8, background: 'var(--accent)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#fff',
+    },
+    logoText: { fontSize: 18, fontWeight: 600, color: 'var(--text)' },
+    titulo:    { fontSize: 22, fontWeight: 700, color: 'var(--text)', textAlign: 'center', marginBottom: 6 },
+    subtitulo: { fontSize: 13, color: 'var(--muted)', textAlign: 'center', marginBottom: 28, lineHeight: 1.6 },
+    form:  { display: 'flex', flexDirection: 'column' },
+    campo: { marginBottom: 20 },
+    label: { display: 'block', fontSize: 12, color: 'var(--muted)', marginBottom: 6, fontWeight: 500 },
+    input: {
+        width: '100%', padding: '10px 14px', fontSize: 14,
+        borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)',
+        background: 'var(--bg)', color: 'var(--text)', outline: 'none',
+    },
+    boton: {
+        width: '100%', padding: '12px 0', borderRadius: 'var(--radius-md)',
+        background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer',
+    },
+    footer: { marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--muted)' },
+};

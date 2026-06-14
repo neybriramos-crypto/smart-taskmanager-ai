@@ -1,135 +1,170 @@
-"use client";
-import { useState } from "react";
-import axios from "axios";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { api } from '../../hooks/useAPI';
 
-export default function RegistroPage() {
-  const [nombre, setNombre] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [exito, setExito] = useState("");
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
+export default function Registro() {
+    const router = useRouter();
+    const [form, setForm]         = useState({ nombre: '', email: '', password: '', confirmar: '' });
+    const [error, setError]       = useState('');
+    const [exito, setExito]       = useState(false);
+    const [cargando, setCargando] = useState(false);
 
-  const handleRegistro = async (e) => {
-    e.preventDefault();
-    setError("");
-    setExito("");
-    setLoading(true);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
 
-    try {
-      const response = await axios.post("http://localhost:5000/api/auth/registro", {
-        nombre,
-        email,
-        password,
-      });
+        if (form.password !== form.confirmar) {
+            return setError('Las contraseñas no coinciden');
+        }
+        if (form.password.length < 6) {
+            return setError('La contraseña debe tener al menos 6 caracteres');
+        }
 
-      if (response.status === 201 || response.status === 200) {
-        setExito("¡Cuenta creada con éxito! Redirigiéndote al login...");
-        setNombre("");
-        setEmail("");
-        setPassword("");
-        
-        // Redirigir al login después de 2 segundos para que vean el mensaje
-        setTimeout(() => {
-          router.push("/login");
-        }, 2000);
-      }
-    } catch (err) {
-      console.error("Error completo del registro:", err);
-      setError(err.response?.data?.mensaje || err.response?.data?.error || "Error al registrarse. Inténtalo de nuevo.");
-    } finally {
-      setLoading(false);
+        setCargando(true);
+        try {
+            await api.registro(form.nombre, form.email, form.password);
+            setExito(true);
+            setTimeout(() => router.push('/login'), 2000);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Error al registrarse');
+        } finally {
+            setCargando(false);
+        }
+    };
+
+    if (exito) {
+        return (
+            <div style={styles.page}>
+                <div style={{ ...styles.card, textAlign: 'center' }}>
+                    <div style={{ fontSize: 40, marginBottom: 16 }}>✅</div>
+                    <h2 style={{ color: 'var(--success)', marginBottom: 8 }}>¡Cuenta creada!</h2>
+                    <p style={{ color: 'var(--muted)', fontSize: 13 }}>Redirigiendo al login...</p>
+                </div>
+            </div>
+        );
     }
-  };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
-        
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-            Crear Cuenta
-          </h2>
-          <p className="text-sm text-slate-500 mt-2">
-            Regístrate para empezar a organizar tus proyectos con IA
-          </p>
+    return (
+        <div style={styles.page}>
+            <div style={styles.card}>
+                <div style={styles.logo}>
+                    <div style={styles.logoBadge}>✦</div>
+                    <span style={styles.logoText}>Smart Tasks <span style={{ color: 'var(--accent)', fontWeight: 700 }}>AI</span></span>
+                </div>
+
+                <h1 style={styles.titulo}>Crea tu cuenta</h1>
+                <p style={styles.subtitulo}>Empieza a gestionar tus tareas con IA</p>
+
+                {error && <div style={styles.errorBanner}>{error}</div>}
+
+                <form onSubmit={handleSubmit} style={styles.form}>
+                    {[
+                        { key: 'nombre',    label: 'Nombre completo',      type: 'text',     placeholder: 'Tu nombre' },
+                        { key: 'email',     label: 'Correo electrónico',   type: 'email',    placeholder: 'tu@correo.com' },
+                        { key: 'password',  label: 'Contraseña',           type: 'password', placeholder: '••••••••' },
+                        { key: 'confirmar', label: 'Confirmar contraseña', type: 'password', placeholder: '••••••••' },
+                    ].map(({ key, label, type, placeholder }) => (
+                        <div key={key} style={styles.campo}>
+                            <label style={styles.label}>{label}</label>
+                            <input
+                                type={type}
+                                value={form[key]}
+                                onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                                placeholder={placeholder}
+                                required
+                                style={styles.input}
+                            />
+                        </div>
+                    ))}
+
+                    <button type="submit" disabled={cargando} style={{ ...styles.boton, marginTop: 8 }}>
+                        {cargando ? 'Creando cuenta...' : 'Crear cuenta'}
+                    </button>
+                </form>
+
+                <p style={styles.footer}>
+                    ¿Ya tienes cuenta?{' '}
+                    <Link href="/login" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                        Inicia sesión
+                    </Link>
+                </p>
+            </div>
         </div>
-
-        {/* Alertas */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-r-lg">
-            {error}
-          </div>
-        )}
-        {exito && (
-          <div className="mb-6 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 text-sm rounded-r-lg">
-            {exito}
-          </div>
-        )}
-
-        <form onSubmit={handleRegistro} className="space-y-5">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Nombre Completo
-            </label>
-            <input
-              type="text"
-              required
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-              placeholder="Tu nombre"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Correo Electrónico
-            </label>
-            <input
-              type="email"
-              required
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-              placeholder="ejemplo@correo.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Contraseña
-            </label>
-            <input
-              type="password"
-              required
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-              placeholder="Mínimo 6 caracteres"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 text-center mt-2"
-          >
-            {loading ? "Creando cuenta..." : "Registrarse"}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-slate-600 mt-8">
-          ¿Ya tienes una cuenta?{" "}
-          <Link href="/login" className="text-blue-600 font-semibold hover:underline">
-            Inicia sesión aquí
-          </Link>
-        </p>
-
-      </div>
-    </div>
-  );
+    );
 }
+
+const styles = {
+    page: {
+        minHeight: '100vh',
+        background: 'var(--bg)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+    },
+    card: {
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-xl)',
+        padding: '40px 36px',
+        width: '100%',
+        maxWidth: 420,
+    },
+    logo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 28,
+        justifyContent: 'center',
+    },
+    logoBadge: {
+        width: 34,
+        height: 34,
+        borderRadius: 8,
+        background: 'var(--accent)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 16,
+        color: '#fff',
+    },
+    logoText: { fontSize: 18, fontWeight: 600, color: 'var(--text)' },
+    titulo: { fontSize: 22, fontWeight: 700, color: 'var(--text)', textAlign: 'center', marginBottom: 6 },
+    subtitulo: { fontSize: 13, color: 'var(--muted)', textAlign: 'center', marginBottom: 28 },
+    errorBanner: {
+        background: '#F43F5E15',
+        border: '1px solid #F43F5E40',
+        borderRadius: 'var(--radius-sm)',
+        color: 'var(--danger)',
+        fontSize: 13,
+        padding: '10px 14px',
+        marginBottom: 18,
+    },
+    form: { display: 'flex', flexDirection: 'column' },
+    campo: { marginBottom: 14 },
+    label: { display: 'block', fontSize: 12, color: 'var(--muted)', marginBottom: 6, fontWeight: 500 },
+    input: {
+        width: '100%',
+        padding: '10px 14px',
+        fontSize: 14,
+        borderRadius: 'var(--radius-sm)',
+        border: '1px solid var(--border)',
+        background: 'var(--bg)',
+        color: 'var(--text)',
+        outline: 'none',
+    },
+    boton: {
+        width: '100%',
+        padding: '12px 0',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--accent)',
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 700,
+        border: 'none',
+        cursor: 'pointer',
+    },
+    footer: { marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--muted)' },
+};

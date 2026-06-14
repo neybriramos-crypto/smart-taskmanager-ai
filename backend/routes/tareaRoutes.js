@@ -1,23 +1,21 @@
-const express = require('express');
-const router = express.Router();
+const express         = require('express');
+const router          = express.Router();
 const tareaController = require('../controllers/tareaController');
-const verificarToken = require('../middlewares/authMiddleware');
+const authMiddleware  = require('../middlewares/authMiddleware');
 
-router.use(verificarToken);
+// Todas las rutas de tareas requieren autenticación
+router.use(authMiddleware);
 
-router.post('/', tareaController.crearTarea);
-router.get('/', tareaController.obtenerTareas);
-router.put('/:id', tareaController.actualizarTarea);
-router.delete('/:id', tareaController.eliminarTarea);
+// CRUD de tareas
+router.post('/',     tareaController.crearTarea);
+router.get('/',      tareaController.obtenerTareas);
+router.put('/:id',   tareaController.actualizarTarea);
+router.delete('/:id',tareaController.eliminarTarea);
 
-// ==========================================
-// NUEVAS RUTAS INTELIGENTES PARA SUBTAREAS
-// ==========================================
-router.post('/:id/generar-subtareas', tareaController.generarSubtareasIA);
-router.get('/:id/subtareas', tareaController.obtenerSubtareas);
-router.patch('/subtareas/:subtareaId', tareaController.conmutarSubtarea);
-
-// Priorizar un conjunto de tareas (body: { tareas: [...] })
-router.post('/priorizar', tareaController.priorizarTareasIA);
+// IA y subtareas
+router.post('/:id/subtareas-ia',          tareaController.generarSubtareasIA);
+router.get('/:id/subtareas',              tareaController.obtenerSubtareas);
+router.put('/subtareas/:subtareaId/toggle', tareaController.conmutarSubtarea);
+router.post('/priorizar-ia',              tareaController.priorizarTareasIA);
 
 module.exports = router;
