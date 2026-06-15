@@ -1,5 +1,5 @@
-const db        = require('../config/db');
-const Tarea     = require('../models/tareaModel');
+const db = require('../config/db');
+const Tarea = require('../models/tareaModel');
 const iaService = require('../services/iaService');
 
 const tareaController = {
@@ -28,9 +28,9 @@ const tareaController = {
                 fecha_limite: fecha_limite || null,
             };
 
-            // Emitir a la sala del usuario para tiempo real
+            // Emitir a la sala del usuario para tiempo real mediante Sockets
             const io = req.app.get('io');
-            io.to(`usuario_${usuario_id}`).emit('tarea:creada', nuevaTarea);
+            if (io) io.to(`usuario_${usuario_id}`).emit('tarea:creada', nuevaTarea);
 
             res.status(201).json({ mensaje: 'Tarea creada con éxito', tarea: nuevaTarea });
         } catch (error) {
@@ -65,7 +65,7 @@ const tareaController = {
             const tareaActualizada = { id: parseInt(id), ...req.body };
 
             const io = req.app.get('io');
-            io.to(`usuario_${usuario_id}`).emit('tarea:actualizada', tareaActualizada);
+            if (io) io.to(`usuario_${usuario_id}`).emit('tarea:actualizada', tareaActualizada);
 
             res.json({ mensaje: 'Tarea actualizada con éxito', tarea: tareaActualizada });
         } catch (error) {
@@ -86,9 +86,9 @@ const tareaController = {
             }
 
             const io = req.app.get('io');
-            io.to(`usuario_${usuario_id}`).emit('tarea:eliminada', { id: parseInt(id) });
+            if (io) io.to(`usuario_${usuario_id}`).emit('tarea:eliminada', { id: parseInt(id) });
 
-            res.json({ mensaje: 'Tarea eliminada con éxito' });
+            res.json({ mensaje: 'Tarea estructura eliminada con éxito' });
         } catch (error) {
             console.error('[Tareas] Error al eliminar:', error);
             res.status(500).json({ error: 'Hubo un error al eliminar la tarea' });
@@ -101,14 +101,19 @@ const tareaController = {
         const usuario_id = req.usuario.id;
 
         try {
-            const tarea = await Tarea.findById(tareaId, usuario_id);
-            if (!tarea) {
+            // Buscas la tarea en la BD usando tu método del modelo
+            const [tareas] = await db.query("SELECT titulo, descripcion FROM tareas WHERE id = ? AND usuario_id = ?", [tareaId, usuario_id]);
+            
+            if (tareas.length === 0) {
                 return res.status(404).json({ error: 'Tarea no encontrada o no autorizada' });
             }
 
+            const tarea = tareas[0];
+
+            // Consumimos el método limpio del iaService
             const listaSubtareas = await iaService.generarSubtareas(tarea.titulo, tarea.descripcion);
 
-            // Borrar subtareas anteriores e insertar las nuevas
+            // Borrar subtareas anteriores de la tarea actual e insertar las nuevas de la IA
             await db.query('DELETE FROM subtareas WHERE tarea_id = ?', [tareaId]);
             const queries = listaSubtareas.map(texto =>
                 db.query('INSERT INTO subtareas (tarea_id, texto) VALUES (?, ?)', [tareaId, texto])
@@ -121,14 +126,17 @@ const tareaController = {
                 completada: 0,
             }));
 
+            // Emitir cambios por sockets a la UI en tiempo real
             const io = req.app.get('io');
-            io.to(`usuario_${usuario_id}`).emit('subtareas:generadas', {
-                tareaId: parseInt(tareaId),
-                subtareas: subtareasConId,
-            });
+            if (io) {
+                io.to(`usuario_${usuario_id}`).emit('subtareas:generadas', {
+                    tareaId: parseInt(tareaId),
+                    subtareas: subtareasConId,
+                });
+            }
 
             res.status(201).json({
-                mensaje:   'Subtareas generadas con IA',
+                mensaje:   'Subtareas generadas con IA con éxito',
                 subtareas: subtareasConId,
             });
         } catch (error) {

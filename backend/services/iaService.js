@@ -1,115 +1,170 @@
-// ─── Servicio centralizado de Gemini IA ──────────────────────
-// Todas las llamadas a Gemini pasan por aquí.
-// Si la clave no está configurada o falla, se usa un fallback heurístico.
+const { GoogleGenAI } = require("@google/genai");
 
-let geminiModel = null;
+// Validar que la variable de entorno esté presente y sea no vacía
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+let ai = null;
+const MODEL_NAME = "gemini-2.5-flash";
 
-try {
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-    const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    geminiModel = client.getGenerativeModel({
-        model: 'gemini-2.5-flash',
-        generationConfig: { responseMimeType: 'application/json' },
-    });
-    console.log('✅ Gemini IA habilitado');
-} catch (err) {
-    console.warn('⚠️  Gemini no disponible, se usará fallback heurístico:', err.message);
+if (!GEMINI_API_KEY) {
+    console.warn('Advertencia: falta la variable de entorno GEMINI_API_KEY. Las funciones de IA estarán deshabilitadas.');
+} else {
+    ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 }
 
-// ── Helper: parsear JSON de la respuesta ─────────────────────
+function requireAI() {
+    if (!ai) {
+        throw new Error('GEMINI_API_KEY no está configurado. Configura la variable de entorno GEMINI_API_KEY para usar las funciones de IA.');
+    }
+}
+
+/**
+ * Limpia y parsea de forma segura el JSON devuelto por Gemini,
+ * eliminando bloques de código markdown si la IA los incluye.
+ */
 function parsearJSON(texto) {
-    let limpio = texto.trim().replace(/^```json\s*/i, '').replace(/```$/,'').trim();
+    const limpio = texto.trim().replace(/^```json\s*/i, '').replace(/```$/, '').trim();
     try {
         return JSON.parse(limpio);
-    } catch {
+    } catch (e) {
+        // Intento de rescate si hay texto extra alrededor del JSON
         const match = limpio.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
         if (match) return JSON.parse(match[1]);
-        throw new Error('No se pudo parsear la respuesta JSON de Gemini');
+        throw new Error('No se pudo parsear el JSON estructurado por la IA');
     }
 }
 
-// ── 1. Generar subtareas para una tarea ──────────────────────
-async function generarSubtareas(titulo, descripcion) {
-    if (!geminiModel) {
-        return [
-            `Analizar los requisitos de: ${titulo}`,
-            `Implementar la solución principal`,
-            `Revisar y documentar los cambios`,
-        ];
+const iaService = {
+    /**
+     * ── 1. Generar Subtareas (JSON) ──────────────────────────────────
+     */
+    generarSubtareas: async (titulo, descripcion) => {
+        try {
+            requireAI();
+            const prompt = `Eres un experto en gestión del tiempo y productividad. 
+            Desglosa la siguiente tarea en exactamente 3 subtareas cortas, claras y accionables.
+            
+            Tarea principal: "${titulo}"
+            Descripción: "${descripcion || 'Sin descripción proporcionada.'}"
+            
+            Responde ÚNICAMENTE con un arreglo JSON de strings, sin texto adicional ni introducciones:
+            ["Subtarea 1", "Subtarea 2", "Subtarea 3"]`;
+
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: prompt,
+                config: { 
+                    responseMimeType: "application/json" 
+                }
+            });
+
+            return parsearJSON(response.text);
+        } catch (error) {
+            console.error("Error en iaService.generarSubtareas:", error);
+            throw error;
+        }
+    },
+
+    /**
+     * ── 2. Priorizar Tareas (JSON) ───────────────────────────────────
+     */
+    priorizarTareas: async (tareas) => {
+        try {
+            requireAI();
+            const lista = tareas.map(t => `- ID ${t.id}: ${t.titulo} (${t.prioridad || 'baja'})`).join('\n');
+            const prompt = `Ordena estas tareas de mayor a menor prioridad lógica y estima los minutos requeridos para completarlas.
+            Lista de tareas:
+            ${lista}
+            
+            Responde SOLO con este formato JSON válido, sin decoraciones markdown ni texto extra:
+            [{"id": 1, "titulo": "...", "estimado_minutos": 30}]`;
+
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: prompt,
+                config: { 
+                    responseMimeType: "application/json" 
+                }
+            });
+
+            return parsearJSON(response.text);
+        } catch (error) {
+            console.error("Error en iaService.priorizarTareas:", error);
+            throw error;
+        }
+    },
+
+    /**
+     * ── 3. Chat del Asistente (Texto plano / Conversación) ───────────
+     */
+    responderChat: async (mensajes, contextoTareas) => {
+        try {
+            requireAI();
+            // Mapeo del historial al formato estructural esperado por el nuevo cliente de Google
+            const contents = mensajes.map(m => ({
+                role: m.rol === 'usuario' ? 'user' : 'model',
+                parts: [{ text: m.contenido }]
+            }));
+
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: contents,
+                config: {
+                    systemInstruction: `Eres un asistente de productividad integrado en Smart Task Manager. 
+                    Sé conciso, práctico y amigable. Responde siempre en español.
+                    Contexto actual de las tareas del usuario: ${contextoTareas}`
+                }
+            });
+
+            return response.text;
+        } catch (error) {
+            console.error("Error en iaService.responderChat:", error);
+            throw error;
+        }
+    },
+
+    /**
+     * ── 4. Análisis Completo de Productividad (Markdown) ──────────────
+     */
+    analizarProductividad: async (stats, tareas) => {
+        try {
+            requireAI();
+            const altasPendientes = tareas
+                .filter(t => t.prioridad === 'alta' && t.estado !== 'completada')
+                .map(t => t.titulo).join(', ') || 'ninguna';
+
+            const vencidas = tareas
+                .filter(t => t.fecha_limite && new Date(t.fecha_limite) < new Date() && t.estado !== 'completada')
+                .map(t => t.titulo).join(', ') || 'ninguna';
+
+            const prompt = `Eres un coach de productividad experto. Analiza este estado de trabajo y da recomendaciones concretas en español.
+
+            ESTADÍSTICAS:
+            - Total de tareas: ${stats.total}
+            - Completadas: ${stats.completadas} (${stats.total ? Math.round(stats.completadas / stats.total * 100) : 0}%)
+            - En progreso: ${stats.enProgreso || 0}
+            - Pendientes: ${stats.pendientes}
+            - Tareas de alta prioridad pendientes: ${altasPendientes}
+            - Tareas vencidas: ${vencidas}
+
+            Proporciona un informe bien formateado estructurado estrictamente en Markdown con:
+            1. **Evaluación general** del progreso (2-3 oraciones)
+            2. **Riesgos identificados** (lista de 2-3 puntos)
+            3. **Recomendaciones concretas** para las próximas 24 horas (lista de 3-4 acciones específicas)
+            4. **Estimación** de cuánto tiempo necesitas para ponerte al día.
+            
+            Sé directo, práctico y motivador.`;
+
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: prompt,
+            });
+
+            return response.text;
+        } catch (error) {
+            console.error("Error en iaService.analizarProductividad:", error);
+            throw error;
+        }
     }
+};
 
-    const prompt = `
-Actúa como un experto en productividad y gestión de proyectos.
-Desglosa la siguiente tarea en exactamente 3 o 4 subtareas accionables, cortas y claras.
-
-Tarea: "${titulo}"
-Descripción: "${descripcion || 'Sin descripción'}"
-
-Responde ÚNICAMENTE con un arreglo JSON de strings, sin texto adicional:
-["Subtarea 1", "Subtarea 2", "Subtarea 3"]
-    `.trim();
-
-    const resultado = await geminiModel.generateContent(prompt);
-    return parsearJSON(resultado.response.text());
-}
-
-// ── 2. Priorizar lista de tareas ──────────────────────────────
-async function priorizarTareas(tareas) {
-    if (!geminiModel) {
-        const mapa = { alta: 3, media: 2, baja: 1 };
-        return tareas
-            .slice()
-            .sort((a, b) => (mapa[b.prioridad] || 0) - (mapa[a.prioridad] || 0))
-            .map(t => ({ id: t.id, titulo: t.titulo, estimado_minutos: 30 }));
-    }
-
-    const lista = tareas
-        .map(t => `- ID ${t.id}: ${t.titulo}${t.descripcion ? ' — ' + t.descripcion : ''}`)
-        .join('\n');
-
-    const prompt = `
-Actúa como un asistente de productividad. Tienes esta lista de tareas:
-${lista}
-
-Ordénalas de mayor a menor prioridad lógica y estima el tiempo en minutos.
-Responde ÚNICAMENTE con este JSON (sin texto extra):
-[{"id": "<id>", "titulo": "<titulo>", "estimado_minutos": 30}]
-    `.trim();
-
-    const resultado = await geminiModel.generateContent(prompt);
-    return parsearJSON(resultado.response.text());
-}
-
-// ── 3. Responder en el chat del asistente ─────────────────────
-async function responderChat(mensajes, contextoTareas) {
-    // mensajes = [{ rol: 'usuario'|'ia', contenido: '...' }]
-    if (!geminiModel) {
-        return 'El asistente IA no está disponible en este momento. Verifica tu GEMINI_API_KEY en el .env.';
-    }
-
-    // Reconstruimos el historial en formato Gemini
-    const modeloChat = geminiModel.startChat({
-        history: mensajes.slice(0, -1).map(m => ({
-            role:  m.rol === 'usuario' ? 'user' : 'model',
-            parts: [{ text: m.contenido }],
-        })),
-        generationConfig: { responseMimeType: 'text/plain' },
-    });
-
-    const sistema = `
-Eres un asistente de productividad inteligente integrado en Smart Task Manager.
-Sé conciso, práctico y amigable. Responde siempre en español.
-
-Contexto actual del usuario:
-${contextoTareas}
-    `.trim();
-
-    const ultimoMensaje = mensajes[mensajes.length - 1];
-    const respuesta = await modeloChat.sendMessage(
-        `[Sistema: ${sistema}]\n\nUsuario: ${ultimoMensaje.contenido}`
-    );
-
-    return respuesta.response.text();
-}
-
-module.exports = { generarSubtareas, priorizarTareas, responderChat };
+module.exports = iaService;

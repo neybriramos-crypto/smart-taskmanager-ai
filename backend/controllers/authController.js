@@ -1,7 +1,9 @@
-const Usuario  = require('../models/usuarioModel');
-const bcrypt   = require('bcryptjs');
-const jwt      = require('jsonwebtoken');
+const Usuario = require('../models/usuarioModel');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
+const db = require('../config/db'); 
+const transporter = require('../config/mailer');
 const authController = {
 
     registro: async (req, res) => {
@@ -76,6 +78,54 @@ const authController = {
             res.status(500).json({ error: 'Error al obtener perfil' });
         }
     },
+
+    recuperar: async (req, res) => {
+        const { email } = req.body;
+        try {
+            const usuario = await Usuario.findByEmail(email);
+            if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+            const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+            // Guardar en BD (asegúrate de tener la tabla codigos_recuperacion)
+            await db.execute("INSERT INTO codigos_recuperacion (email, codigo, expiracion) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))", [email, codigo]);
+
+            await transporter.sendMail({
+                from: '"Smart Tasks" <no-reply@app.com>',
+                to: email,
+                subject: "Código de recuperación",
+                text: `Tu código de verificación es: ${codigo}`
+            });
+
+            res.json({ mensaje: 'Código enviado a tu correo' });
+        } catch (error) {
+            console.error('[Auth] Error recuperar:', error);
+            res.status(500).json({ error: 'Error al procesar la recuperación' });
+        }
+    },
+
+    resetPassword: async (req, res) => {
+        const { email, codigo, nuevaPassword } = req.body;
+        try {
+            // Verificar código y expiración
+            const [rows] = await db.execute("SELECT * FROM codigos_recuperacion WHERE email = ? AND codigo = ? AND expiracion > NOW()", [email, codigo]);
+            
+            if (rows.length === 0) return res.status(400).json({ error: 'Código inválido o expirado' });
+
+            // Hashear nueva password
+            const salt = await bcrypt.genSalt(10);
+            const hash = await bcrypt.hash(nuevaPassword, salt);
+            
+            // Actualizar contraseña
+            await db.execute("UPDATE usuarios SET password = ? WHERE email = ?", [hash, email]);
+            
+            // Borrar código usado
+            await db.execute("DELETE FROM codigos_recuperacion WHERE email = ?", [email]);
+
+            res.json({ mensaje: 'Contraseña actualizada con éxito' });
+        } catch (error) {
+            res.status(500).json({ error: 'Error al actualizar contraseña' });
+        }
+    }
 };
 
 module.exports = authController;

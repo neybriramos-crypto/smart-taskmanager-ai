@@ -1,0 +1,65 @@
+const Config  = require('../models/configModel');
+const Usuario = require('../models/usuarioModel');
+const bcrypt  = require('bcryptjs');
+const db      = require('../config/db');
+
+const configController = {
+
+    obtener: async (req, res) => {
+        try {
+            const config  = await Config.get(req.usuario.id);
+            const usuario = await Usuario.findById(req.usuario.id);
+            res.json({ ...config, usuario });
+        } catch (err) { res.status(500).json({ error: 'Error al obtener configuración' }); }
+    },
+
+    actualizar: async (req, res) => {
+        try {
+            await Config.update(req.usuario.id, req.body);
+            res.json({ mensaje: 'Configuración guardada' });
+        } catch (err) { res.status(500).json({ error: 'Error al guardar configuración' }); }
+    },
+
+    actualizarPerfil: async (req, res) => {
+        const { nombre, avatar } = req.body;
+        try {
+            const campos = [], valores = [];
+            if (nombre)              { campos.push('nombre = ?'); valores.push(nombre); }
+            if (avatar !== undefined){ campos.push('avatar = ?'); valores.push(avatar); }
+            if (!campos.length) return res.status(400).json({ error: 'Nada que actualizar' });
+            valores.push(req.usuario.id);
+            await db.query(`UPDATE usuarios SET ${campos.join(', ')} WHERE id = ?`, valores);
+            res.json({ mensaje: 'Perfil actualizado' });
+        } catch (err) { res.status(500).json({ error: 'Error al actualizar perfil' }); }
+    },
+
+    cambiarPassword: async (req, res) => {
+        const { password_actual, password_nueva } = req.body;
+        if (!password_actual || !password_nueva)
+            return res.status(400).json({ error: 'Ambas contraseñas son requeridas' });
+        if (password_nueva.length < 6)
+            return res.status(400).json({ error: 'Mínimo 6 caracteres' });
+        try {
+            const [rows] = await db.query('SELECT password FROM usuarios WHERE id = ?', [req.usuario.id]);
+            const valido = await bcrypt.compare(password_actual, rows[0].password);
+            if (!valido) return res.status(400).json({ error: 'Contraseña actual incorrecta' });
+            const hash = await bcrypt.hash(password_nueva, 10);
+            await db.query('UPDATE usuarios SET password = ? WHERE id = ?', [hash, req.usuario.id]);
+            res.json({ mensaje: 'Contraseña actualizada' });
+        } catch (err) { res.status(500).json({ error: 'Error al cambiar contraseña' }); }
+    },
+
+    eliminarCuenta: async (req, res) => {
+        const { password } = req.body;
+        if (!password) return res.status(400).json({ error: 'Confirma con tu contraseña' });
+        try {
+            const [rows] = await db.query('SELECT password FROM usuarios WHERE id = ?', [req.usuario.id]);
+            const valido = await bcrypt.compare(password, rows[0].password);
+            if (!valido) return res.status(400).json({ error: 'Contraseña incorrecta' });
+            await db.query('DELETE FROM usuarios WHERE id = ?', [req.usuario.id]);
+            res.json({ mensaje: 'Cuenta eliminada' });
+        } catch (err) { res.status(500).json({ error: 'Error al eliminar cuenta' }); }
+    },
+};
+
+module.exports = configController;
