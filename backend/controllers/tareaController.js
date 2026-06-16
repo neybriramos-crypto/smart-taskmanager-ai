@@ -4,7 +4,7 @@ const iaService = require('../services/iaService');
 
 const tareaController = {
 
-    // ── Crear tarea ───────────────────────────────────────────
+    //Crear tarea
     crearTarea: async (req, res) => {
         const { titulo, descripcion, prioridad, fecha_limite } = req.body;
         const usuario_id = req.usuario.id;
@@ -39,7 +39,7 @@ const tareaController = {
         }
     },
 
-    // ── Obtener todas las tareas ──────────────────────────────
+    //Obtener todas las tareas
     obtenerTareas: async (req, res) => {
         const usuario_id = req.usuario.id;
         try {
@@ -51,7 +51,7 @@ const tareaController = {
         }
     },
 
-    // ── Actualizar tarea ──────────────────────────────────────
+    //Actualizar tarea
     actualizarTarea: async (req, res) => {
         const { id }     = req.params;
         const usuario_id = req.usuario.id;
@@ -74,7 +74,7 @@ const tareaController = {
         }
     },
 
-    // ── Eliminar tarea ────────────────────────────────────────
+    //Eliminar tarea
     eliminarTarea: async (req, res) => {
         const { id }     = req.params;
         const usuario_id = req.usuario.id;
@@ -95,7 +95,7 @@ const tareaController = {
         }
     },
 
-    // ── Generar subtareas con IA ──────────────────────────────
+    //Generar subtareas con IA
     generarSubtareasIA: async (req, res) => {
         const tareaId    = req.params.id;
         const usuario_id = req.usuario.id;
@@ -145,7 +145,7 @@ const tareaController = {
         }
     },
 
-    // ── Obtener subtareas de una tarea ────────────────────────
+    //Obtener subtareas de una tarea
     obtenerSubtareas: async (req, res) => {
         try {
             const [subtareas] = await db.query(
@@ -160,7 +160,7 @@ const tareaController = {
         }
     },
 
-    // ── Toggle completar subtarea ─────────────────────────────
+    //Toggle completar subtarea
     conmutarSubtarea: async (req, res) => {
         const { completada }  = req.body;
         const { subtareaId }  = req.params;
@@ -177,7 +177,7 @@ const tareaController = {
         }
     },
 
-    // ── Priorizar tareas con IA ───────────────────────────────
+    //Priorizar tareas con IA
     priorizarTareasIA: async (req, res) => {
         const { tareas } = req.body;
 

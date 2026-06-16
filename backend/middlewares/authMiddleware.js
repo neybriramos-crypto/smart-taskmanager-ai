@@ -11,7 +11,7 @@ module.exports = (req, res, next) => {
 
     try {
         const verificado = jwt.verify(token, process.env.JWT_SECRET);
-        req.usuario = verificado; // { id, nombre }
+        req.usuario = verificado;
         next();
     } catch (err) {
         return res.status(403).json({ error: 'Token inválido o expirado' });

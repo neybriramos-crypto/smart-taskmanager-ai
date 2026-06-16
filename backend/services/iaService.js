@@ -35,7 +35,7 @@ function parsearJSON(texto) {
 
 const iaService = {
     /**
-     * ── 1. Generar Subtareas (JSON) ──────────────────────────────────
+     *Generar Subtareas (JSON)
      */
     generarSubtareas: async (titulo, descripcion) => {
         try {
@@ -65,7 +65,7 @@ const iaService = {
     },
 
     /**
-     * ── 2. Priorizar Tareas (JSON) ───────────────────────────────────
+     * Priorizar Tareas (JSON) 
      */
     priorizarTareas: async (tareas) => {
         try {
@@ -94,7 +94,7 @@ const iaService = {
     },
 
     /**
-     * ── 3. Chat del Asistente (Texto plano / Conversación) ───────────
+     * Chat del Asistente
      */
     responderChat: async (mensajes, contextoTareas) => {
         try {
@@ -123,7 +123,7 @@ const iaService = {
     },
 
     /**
-     * ── 4. Análisis Completo de Productividad (Markdown) ──────────────
+     *Análisis Completo de Productividad (Markdown)
      */
     analizarProductividad: async (stats, tareas) => {
         try {

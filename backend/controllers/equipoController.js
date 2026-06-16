@@ -4,7 +4,7 @@ const db         = require('../config/db');
 
 const equipoController = {
 
-    // ── Obtener todos los equipos del usuario ───────────────────
+    //Obtener todos los equipos del usuario
     misEquipos: async (req, res) => {
         try {
             const equipos = await Equipo.findByUsuario(req.usuario.id);
@@ -21,12 +21,12 @@ const equipoController = {
             );
             res.json(con_miembros);
         } catch (err) {
-            console.error('❌ Error crítico en [equipoController.misEquipos]:', err.message);
+            console.error('Error crítico en [equipoController.misEquipos]:', err.message);
             res.status(500).json({ error: 'Error interno al obtener la lista de equipos', detalle: err.message });
         }
     },
 
-    // ── Crear un nuevo equipo ──────────────────────────────────
+    //Crear un nuevo equipo
     crear: async (req, res) => {
         const { nombre, descripcion } = req.body;
         const creador_id = req.usuario.id;
@@ -44,12 +44,12 @@ const equipoController = {
             
             res.status(201).json({ mensaje: 'Equipo creado con éxito', equipo });
         } catch (err) {
-            console.error('❌ Error crítico en [equipoController.crear]:', err.message);
+            console.error('Error crítico en [equipoController.crear]:', err.message);
             res.status(500).json({ error: 'Error interno al crear el equipo', detalle: err.message });
         }
     },
 
-    // ── Ver detalles completos de un equipo ─────────────────────
+    //Ver detalles completos de un equipo
     detalle: async (req, res) => {
         try {
             const equipo = await Equipo.findById(req.params.id);
@@ -69,12 +69,12 @@ const equipoController = {
 
             res.json({ ...equipo, miembros, tareas, invitaciones, mi_rol: miembro.rol });
         } catch (err) {
-            console.error(`❌ Error crítico en [equipoController.detalle] para ID ${req.params.id}:`, err.message);
+            console.error(`Error crítico en [equipoController.detalle] para ID ${req.params.id}:`, err.message);
             res.status(500).json({ error: 'Error interno al obtener los detalles del equipo', detalle: err.message });
         }
     },
 
-    // ── Actualizar datos informativos del equipo ────────────────
+    //Actualizar datos informativos del equipo
     actualizar: async (req, res) => {
         try {
             const miembro = await Equipo.getMiembro(req.params.id, req.usuario.id);
@@ -84,12 +84,12 @@ const equipoController = {
             await Equipo.update(req.params.id, req.body);
             res.json({ mensaje: 'Información del equipo actualizada' });
         } catch (err) { 
-            console.error('❌ Error crítico en [equipoController.actualizar]:', err.message);
+            console.error('Error crítico en [equipoController.actualizar]:', err.message);
             res.status(500).json({ error: 'Error al actualizar el equipo', detalle: err.message }); 
         }
     },
 
-    // ── Remover equipo del sistema ─────────────────────────────
+    //Remover equipo del sistema
     eliminar: async (req, res) => {
         try {
             const equipo = await Equipo.findById(req.params.id);
@@ -106,12 +106,12 @@ const equipoController = {
             
             res.json({ mensaje: 'Equipo eliminado correctamente' });
         } catch (err) { 
-            console.error('❌ Error crítico en [equipoController.eliminar]:', err.message);
+            console.error('Error crítico en [equipoController.eliminar]:', err.message);
             res.status(500).json({ error: 'Error al intentar eliminar el equipo', detalle: err.message }); 
         }
     },
 
-    // ── Enviar invitación dirigida por correo electrónico ───────
+    //Enviar invitación dirigida por correo electrónico
     invitar: async (req, res) => {
         const { email, rol = 'lector' } = req.body;
         const equipo_id = req.params.id;
@@ -144,12 +144,12 @@ const equipoController = {
 
             res.json({ mensaje: `Invitación enviada con éxito a ${email}`, token });
         } catch (err) {
-            console.error('❌ Error crítico en [equipoController.invitar]:', err.message);
+            console.error('Error crítico en [equipoController.invitar]:', err.message);
             res.status(500).json({ error: 'Error al procesar la invitación', detalle: err.message });
         }
     },
 
-    // ── Crear Enlace de Acceso Rápido / Compartible ─────────────
+    //Crear Enlace de Acceso Rápido / Compartible
     generarEnlaceInvitacion: async (req, res) => {
         const { id } = req.params; 
         const { rol = 'lector' } = req.body; 
@@ -181,12 +181,12 @@ const equipoController = {
                 rol
             });
         } catch (err) {
-            console.error('❌ Error crítico en [equipoController.generarEnlaceInvitacion]:', err.message);
+            console.error('Error crítico en [equipoController.generarEnlaceInvitacion]:', err.message);
             res.status(500).json({ error: 'Error al generar el enlace dinámico', detalle: err.message });
         }
     },
 
-    // ── Validar y consumir invitación de enlace ──────────────────
+    //Validar y consumir invitación de enlace
     aceptarInvitacion: async (req, res) => {
         try {
             const [rows] = await db.query('SELECT * FROM invitaciones WHERE token = ?', [req.params.token]);
@@ -200,12 +200,12 @@ const equipoController = {
             
             res.json({ mensaje: `Te has unido exitosamente al equipo con el rol de ${inv.rol}` });
         } catch (err) { 
-            console.error('❌ Error crítico en [equipoController.aceptarInvitacion]:', err.message);
+            console.error('Error crítico en [equipoController.aceptarInvitacion]:', err.message);
             res.status(500).json({ error: 'Error al procesar la aceptación de la invitación', detalle: err.message }); 
         }
     },
 
-    // ── Reasignar privilegios jerárquicos de un miembro ──────────
+    //Reasignar privilegios jerárquicos de un miembro
     cambiarRol: async (req, res) => {
         const { equipo_id, miembro_id } = req.params;
         const { rol } = req.body;
@@ -224,12 +224,12 @@ const equipoController = {
             }
             res.json({ mensaje: 'Rol del miembro actualizado' });
         } catch (err) { 
-            console.error('❌ Error crítico en [equipoController.cambiarRol]:', err.message);
+            console.error('Error crítico en [equipoController.cambiarRol]:', err.message);
             res.status(500).json({ error: 'Error al modificar el rol del miembro', detalle: err.message }); 
         }
     },
 
-    // ── Remover o expulsar un miembro del equipo ────────────────
+    //Remover o expulsar un miembro del equipo
     eliminarMiembro: async (req, res) => {
         const { equipo_id, miembro_id } = req.params;
         try {
@@ -245,7 +245,7 @@ const equipoController = {
             }
             res.json({ mensaje: 'Miembro desvinculado con éxito del equipo' });
         } catch (err) { 
-            console.error('❌ Error crítico en [equipoController.eliminarMiembro]:', err.message);
+            console.error('Error crítico en [equipoController.eliminarMiembro]:', err.message);
             res.status(500).json({ error: 'Error al intentar remover al miembro', detalle: err.message }); 
         }
     },

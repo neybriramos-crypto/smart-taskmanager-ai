@@ -15,7 +15,7 @@ cron.schedule('0 * * * *', async () => {
     try {
         console.log('Verificando tareas vencidas...');
 
-        // 1. Buscamos tareas vencidas no notificadas
+        //Buscamos tareas vencidas no notificadas
         const [tareasVencidas] = await db.execute(`
             SELECT t.id, t.titulo, u.email, t.usuario_id 
             FROM tareas t
@@ -26,7 +26,7 @@ cron.schedule('0 * * * *', async () => {
 
         for (const tarea of tareasVencidas) {
             
-            // 2. IMPORTANTE: Consultar si el usuario quiere recibir este email
+            //Consultar si el usuario quiere recibir este email
             const [configs] = await db.execute(
                 "SELECT notif_email FROM configuracion_usuario WHERE usuario_id = ?", 
                 [tarea.usuario_id]

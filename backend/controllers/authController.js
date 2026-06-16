@@ -86,7 +86,6 @@ const authController = {
             if (!usuario) return res.status(404).json({ error: 'Usuario no encontrado' });
 
             const codigo = Math.floor(100000 + Math.random() * 900000).toString();
-            // Guardar en BD (asegúrate de tener la tabla codigos_recuperacion)
             await db.execute("INSERT INTO codigos_recuperacion (email, codigo, expiracion) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))", [email, codigo]);
 
             await transporter.sendMail({
