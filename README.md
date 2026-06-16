@@ -1,116 +1,85 @@
 # Smart Task Manager AI
 
-Este repositorio contiene el backend de una API para un gestor de tareas con autenticación de usuarios y operaciones CRUD sobre tareas.
+Pequeño gestor de tareas con API en `backend/` y frontend Next.js en `frontend/`.
 
-## Tecnologías
+**Rápido — Qué hay aquí**
+- Backend: Node.js + Express + MySQL
+- Frontend: Next.js (App Router)
 
-- Node.js
-- Express
-- MySQL
-- bcryptjs
-- jsonwebtoken
-- dotenv
-- cors
+## Requisitos
+- Node.js 18+ (en el repo se usa Node 24 localmente)
+- MySQL en ejecución
+- Variables de entorno (ver sección "Variables de entorno")
 
-## Estructura principal
+## Ejecutar localmente
 
-- `backend/server.js` - punto de entrada del servidor
-- `backend/config/db.js` - configuración de conexión a MySQL
-- `backend/routes/` - rutas de autenticación y tareas
-- `backend/controllers/` - lógica de los endpoints
-- `backend/models/` - acceso a la base de datos
-- `backend/middlewares/` - validación de JWT
+Backend
 
-## Instalación
-
-1. Abre la terminal en la carpeta `backend`:
-
-```bash
+```powershell
 cd backend
-```
-
-2. Instala dependencias:
-
-```bash
 npm install
+npm run dev    # usa nodemon
 ```
 
-3. Crea un archivo `.env` en `backend/` con las siguientes variables:
+Frontend
 
-```env
-PORT=5000
-DB_HOST=localhost
-DB_USER=tu_usuario
-DB_PASSWORD=tu_contraseña
-DB_NAME=tu_base_de_datos
-JWT_SECRET=una_clave_secreta
+```powershell
+cd frontend
+npm install
+npm run dev    # Next dev server (3000 por defecto)
 ```
 
-4. Asegúrate de tener MySQL ejecutándose y la base de datos creada.
+Si el puerto 3000 o 5000 están ocupados, Next/Express subirán en el siguiente puerto disponible.
+
+## Variables de entorno importantes
+
+- `PORT` (opcional) — puerto del backend (por defecto 5000)
+- `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` — conexión MySQL
+- `JWT_SECRET` — clave para JWT
+- `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM` — credenciales SMTP usadas por la funcionalidad de recuperación
+- `GEMINI_API_KEY` — opcional; si no está definida, las funciones AI no se inicializan pero el servidor sigue arrancando
+- `FRONTEND_URL` — URL del frontend para CORS (opcional)
+
+Coloca estas variables en `backend/.env` (no comitear). Ya se añadió `.gitignore` para ignorarlo.
+
+## Flujo de recuperación de contraseña
+
+Endpoints principales:
+- `POST /api/auth/recuperar` — solicitar código de recuperación por email
+  - Body: `{ "email": "usuario@ejemplo.com" }`
+- `POST /api/auth/reset-password` — restablecer contraseña
+  - Body: `{ "email": "usuario@ejemplo.com", "codigo": "123456", "nuevaPassword": "nuevaClave" }`
+
+El backend crea la tabla `codigos_recuperacion` automáticamente si no existe. También hay un script en `backend/scripts/create_recovery_table.js` para crearla manualmente.
 
 ## Base de datos
 
-Crea las tablas necesarias en MySQL. A modo de ejemplo, puedes usar algo así:
+Crear la base de datos indicada en `DB_NAME` y las tablas de usuarios/tareas según tu esquema. Para desarrollo ya existen ejemplos en `backend/models/`.
 
-```sql
-CREATE TABLE usuarios (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  nombre VARCHAR(255) NOT NULL,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL
-);
+## Limpieza de variables comprometidas en Git
 
-CREATE TABLE tareas (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  usuario_id INT NOT NULL,
-  titulo VARCHAR(255) NOT NULL,
-  descripcion TEXT,
-  estado VARCHAR(50) DEFAULT 'pendiente',
-  prioridad VARCHAR(50),
-  fecha_limite DATE,
-  fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
-);
+Si `backend/.env` fue comiteado por error, ya lo he eliminado del índice en esta rama. Para aplicar lo mismo localmente:
+
+```powershell
+# Quitar del índice pero mantener el archivo local
+git rm --cached backend/.env
+git commit -m "chore: remove backend/.env from repo"
+git push
 ```
 
-## Ejecución
+## Notas y debugging
 
-- Iniciar servidor en modo producción:
+- Si el servidor Node falla en arranque por una dependencia opcional de AI, no debería ocurrir: la integración AI es opcional y el servidor sigue arrancando sin `GEMINI_API_KEY`.
+- Si recibes `ER_NO_SUCH_TABLE` al enviar el código de recuperación, ejecuta:
 
-```bash
-npm start
+```powershell
+node backend/scripts/create_recovery_table.js
 ```
 
-- Iniciar servidor en modo desarrollo con `nodemon`:
+## Contribuir
 
-```bash
-npm run dev
-```
+- Añade issues o PRs para mejoras. Si necesitas que pruebe el flujo de recuperación con credenciales SMTP reales, pásamelas de forma segura fuera del repo.
 
-## Endpoints disponibles
+---
 
-### Autenticación
-
-- `POST /api/auth/register`
-  - Registra un usuario nuevo.
-  - Body JSON: `{ "nombre", "email", "password" }`
-
-- `POST /api/auth/login`
-  - Inicia sesión y devuelve un token JWT.
-  - Body JSON: `{ "email", "password" }`
-
-### Tareas (requieren `Authorization: Bearer <token>`)
-
-- `POST /api/tareas`
-  - Crea una nueva tarea.
-  - Body JSON: `{ "titulo", "descripcion", "prioridad", "fecha_limite" }`
-
-- `GET /api/tareas`
-  - Obtiene todas las tareas del usuario autenticado.
-
-- `PUT /api/tareas/:id`
-  - Actualiza una tarea existente.
-  - Body JSON: `{ "titulo", "descripcion", "estado", "prioridad", "fecha_limite" }`
-
-- `DELETE /api/tareas/:id`
-  - Elimina una tarea.
+Si quieres que extienda este README con más ejemplos de uso, pruebas o diagramas, dime qué sección prefieres.
