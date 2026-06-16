@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { api } from '../../../hooks/useApi'; // Ajusta la ruta a tu hook de API
+import { api } from '../../../hooks/useApi';
 
 export default function ProcesarInvitacion() {
     const router = useRouter();
@@ -18,7 +18,6 @@ export default function ProcesarInvitacion() {
             // CASO 1: No está logueado
             if (!tokenUsuario) {
                 setEstado('No has iniciado sesión. Guardando invitación y redirigiéndote...');
-                // Guardamos el token temporalmente para usarlo después del login
                 localStorage.setItem('token_invitacion_pendiente', tokenInvitacion);
                 
                 setTimeout(() => {
@@ -30,14 +29,11 @@ export default function ProcesarInvitacion() {
             // CASO 2: Ya está logueado, procesamos la unión en el backend
             try {
                 setEstado('Uniéndote al equipo en tiempo real...');
-                
-                // Asegúrate de tener este método en tu archivo de API de Axios/Fetch
-                // Envía el token al backend para que registre al usuario en el equipo
                 await api.aceptarInvitacion(tokenInvitacion); 
                 
                 setEstado('¡Te has unido con éxito! Redirigiéndote...');
                 setTimeout(() => {
-                    router.push('/equipo'); // Redirige a la pestaña de equipos
+                    router.push('/equipo');
                 }, 1500);
 
             } catch (error) {

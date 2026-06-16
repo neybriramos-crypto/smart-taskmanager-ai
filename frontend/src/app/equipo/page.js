@@ -236,8 +236,8 @@ export default function Equipo() {
                                         <h3 style={{ fontSize:15, fontWeight:700, margin:'0 0 5px' }}>{eq.nombre}</h3>
                                         <p style={{ fontSize:12, color:'var(--muted)', marginBottom:14, lineHeight:1.5 }}>{eq.descripcion || 'Sin descripción'}</p>
                                         <div style={{ fontSize:11, color:'var(--muted)', display:'flex', gap:14 }}>
-                                            <span>👥 {eq.miembros?.length || 0} miembros</span>
-                                            <span>📋 {eq.tareas_count || 0} tareas</span>
+                                            <span>{eq.miembros?.length || 0} miembros</span>
+                                            <span>{eq.tareas_count || 0} tareas</span>
                                         </div>
                                     </div>
                                 ))}
@@ -270,7 +270,7 @@ export default function Equipo() {
                         {linkInvitacion && (
                             <div style={{ background:'#10B98115', border:'1px solid #10B98140', borderRadius:10, padding:'14px 18px', marginTop:16, display:'flex', alignItems:'center', gap:12 }}>
                                 <div style={{ flex:1 }}>
-                                    <div style={{ fontSize:12, fontWeight:600, color:'var(--success)', marginBottom:4 }}>🔗 Link de invitación generado</div>
+                                    <div style={{ fontSize:12, fontWeight:600, color:'var(--success)', marginBottom:4 }}>Link de invitación generado</div>
                                     <div style={{ fontSize:11, color:'var(--muted)', wordBreak:'break-all' }}>{linkInvitacion}</div>
                                 </div>
                                 <button onClick={copiarLink} style={{ ...b.sec, whiteSpace:'nowrap', fontSize:12 }}>Copiar link</button>
@@ -302,7 +302,7 @@ export default function Equipo() {
                                                             <div style={{ display:'flex', gap:10, fontSize:11, color:'var(--muted)' }}>
                                                                 <span>Por: {t.creador_nombre}</span>
                                                                 {t.asignado_nombre && <span>→ {t.asignado_nombre}</span>}
-                                                                {t.fecha_limite && <span>📅 {new Date(t.fecha_limite).toLocaleDateString('es-MX')}</span>}
+                                                                {t.fecha_limite && <span>{new Date(t.fecha_limite).toLocaleDateString('es-MX')}</span>}
                                                             </div>
                                                         </div>
                                                         <span style={{ fontSize:10, padding:'3px 8px', borderRadius:20, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--muted)', flexShrink:0, marginLeft:10 }}>

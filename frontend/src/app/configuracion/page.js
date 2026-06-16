@@ -51,7 +51,6 @@ export default function Configuracion() {
         setGuardando(true);
         try {
             await api.actualizarConfig(formConfig);
-            // Solo aplicar cambios de tema al DOM si se guarda desde Apariencia
             if (esTema) {
                 localStorage.setItem('tema', formConfig.tema);
                 document.documentElement.setAttribute('data-theme', formConfig.tema);

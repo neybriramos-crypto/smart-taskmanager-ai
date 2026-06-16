@@ -15,21 +15,21 @@ export default function Login() {
         setError('');
         setCargando(true);
         try {
-            // 1. Hacemos la petición de Login
+            //Hacemos la petición de Login
             const { data } = await api.login(form.email, form.password);
             
-            // 2. Guardamos los datos de la sesión de forma segura
+            //Guardamos los datos de la sesión de forma segura
             localStorage.setItem('token',   data.token);
             localStorage.setItem('usuario', JSON.stringify(data.usuario));
 
-            // 3. VERIFICACIÓN DE INVITACIÓN PENDIENTE:
+            //VERIFICACIÓN DE INVITACIÓN PENDIENTE:
             const invitacionPendiente = localStorage.getItem('token_invitacion_pendiente');
             
             if (invitacionPendiente) {
-                localStorage.removeItem('token_invitacion_pendiente'); // Limpiamos el almacenamiento temporal
-                router.push(`/invitacion/${invitacionPendiente}`);    // Lo mandamos directo a procesar su link
+                localStorage.removeItem('token_invitacion_pendiente');
+                router.push(`/invitacion/${invitacionPendiente}`);
             } else {
-                router.push('/'); // Flujo normal si no venía de una invitación
+                router.push('/');
             }
 
         } catch (err) {

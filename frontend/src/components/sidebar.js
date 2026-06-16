@@ -16,8 +16,6 @@ export default function Sidebar({ usuario, progreso = 0, total = 0, completadas 
     const cerrarSesion = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('usuario');
-        
-        // Aprovechamos la notificación aquí también si está disponible
         if (mostrarNotificacion) {
             mostrarNotificacion('Sesión cerrada correctamente', 'success');
         }

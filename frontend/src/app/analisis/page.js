@@ -116,6 +116,7 @@ export default function Analisis() {
                 </div>
 
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
+
                     {/* Alertas */}
                     <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:'20px 24px' }}>
                         <p style={secTit}>Alertas</p>
@@ -131,7 +132,7 @@ export default function Analisis() {
                                 ))}
                                 {altasPend.map(t => (
                                     <div key={t.id} style={{ padding:'10px 12px', borderRadius:8, background:'#F59E0B10', border:'1px solid #F59E0B25', fontSize:12 }}>
-                                        <span style={{ color:'var(--warning)', fontWeight:600 }}>🔴 Alta prioridad: </span>
+                                        <span style={{ color:'var(--warning)', fontWeight:600 }}>Alta prioridad: </span>
                                         <span>{t.titulo}</span>
                                     </div>
                                 ))}
@@ -153,7 +154,7 @@ export default function Analisis() {
                                 Haz clic en "Priorizar" para que la IA ordene tus tareas pendientes por importancia lógica.
                             </p>
                         ) : ordenIA.length === 0 ? (
-                            <p style={{ fontSize:12, color:'var(--success)' }}>✅ No hay tareas pendientes que priorizar.</p>
+                            <p style={{ fontSize:12, color:'var(--success)' }}>No hay tareas pendientes que priorizar.</p>
                         ) : (
                             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                                 {ordenIA.slice(0,6).map((t, i) => (

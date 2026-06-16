@@ -44,7 +44,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 99px; }
 
-/* ── Modo claro ──────────────────────────────────────────────── */
+/* Modo claro */
 [data-theme="claro"] {
     --bg:            #F4F6FB;
     --surface:       #FFFFFF;

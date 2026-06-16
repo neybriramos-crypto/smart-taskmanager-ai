@@ -121,7 +121,7 @@ function NotificationModal({ isOpen, mensaje, tipo = 'success', duracion = 3500,
     );
 }
 
-// ── Modal de formulario — FUERA del componente principal ──────────────────────
+//Modal de formulario
 function FormModal({ modo, formTarea, setFormTarea, onConfirm, onCancel, guardando }) {
     const esEditar = modo === 'editar';
     return (
@@ -217,7 +217,7 @@ function ModalEliminar({ tarea, onConfirm, onCancel, guardando }) {
         <div style={mo.overlay} onClick={e => e.target === e.currentTarget && onCancel()}>
             <div style={{ ...mo.box, maxWidth:400 }}>
                 <div style={{ textAlign:'center', padding:'8px 0 16px' }}>
-                    <div style={{ fontSize:36, marginBottom:12 }}>🗑️</div>
+                    <div style={{ fontSize:36, marginBottom:12 }}></div>
                     <h2 style={{ fontSize:17, fontWeight:700, marginBottom:8 }}>¿Eliminar tarea?</h2>
                     <p style={{ fontSize:13, color:'var(--muted)', lineHeight:1.6 }}>
                         Se eliminará <strong style={{ color:'var(--text)' }}>"{tarea.titulo}"</strong> y todas sus subtareas. Esta acción no se puede deshacer.
@@ -235,7 +235,7 @@ function ModalEliminar({ tarea, onConfirm, onCancel, guardando }) {
     );
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
+//Componente principal
 export default function Dashboard() {
     const router = useRouter();
     const [usuario,    setUsuario]    = useState(null);

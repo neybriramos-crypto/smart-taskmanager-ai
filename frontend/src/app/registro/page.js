@@ -29,7 +29,7 @@ export default function Registro() {
     if (exito) return (
         <div style={s.page}>
             <div style={{ ...s.card, textAlign:'center' }}>
-                <div style={{ fontSize:40, marginBottom:16 }}>✅</div>
+                <div style={{ fontSize:40, marginBottom:16 }}></div>
                 <h2 style={{ color:'var(--success)', marginBottom:8 }}>¡Cuenta creada!</h2>
                 <p style={{ color:'var(--muted)', fontSize:13 }}>Redirigiendo al login...</p>
             </div>

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 export default function NotificationModal({ 
     isOpen, 
     mensaje, 
-    tipo = 'success', // 'success' | 'error' | 'info'
+    tipo = 'success',
     duracion = 3000, 
     onClose 
 }) {
@@ -17,7 +17,7 @@ export default function NotificationModal({
         setProgreso(100);
 
         // Intervalo para animar suavemente la barra de progreso
-        const intervaloTiempo = 10; // ms
+        const intervaloTiempo = 10;
         const decremento = (intervaloTiempo / duracion) * 100;
 
         const timerProgreso = setInterval(() => {
