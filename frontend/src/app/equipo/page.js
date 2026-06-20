@@ -45,6 +45,7 @@ export default function Equipo() {
     const [modalTarea,   setModalTarea]   = useState(false);
     const [modalRol,     setModalRol]     = useState(null);
     const [linkInvitacion, setLinkInvitacion] = useState('');
+    const [modalEliminarEquipo, setModalEliminarEquipo] = useState(false);
 
     // Modal confirmación expulsión
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,6 +70,13 @@ export default function Equipo() {
             setEquipoSel(e => e ? ({ ...e, miembros: e.miembros.map(m => m.id === miembro_id ? { ...m, rol } : m) }) : e),
         onMiembroEliminado:  ({ miembro_id }) =>
             setEquipoSel(e => e ? ({ ...e, miembros: e.miembros.filter(m => m.id !== miembro_id) }) : e),
+        onTareaCreada: (tarea) => {
+            // Solo actualizar si la tarea pertenece al equipo que estoy viendo
+            setEquipoSel(e => {
+                if (!e || tarea.equipo_id !== e.id) return e;
+                return { ...e, tareas: [tarea, ...(e.tareas || [])] };
+            });
+        },
     });
 
     // Función auxiliar para lanzar notificaciones en pantalla
@@ -88,10 +96,10 @@ export default function Equipo() {
             setEquipoSel(data);
             setVista('detalle');
             unirseEquipo(id);
-        } catch { 
-            mostrarMsg('Error al cargar el equipo', 'error'); 
-        } finally { 
-            setCargando(false); 
+        } catch {
+            mostrarMsg('Error al cargar el equipo', 'error');
+        } finally {
+            setCargando(false);
         }
     };
 
@@ -105,10 +113,10 @@ export default function Equipo() {
             await cargarEquipos();
             verDetalle(data.equipo.id);
             mostrarMsg('¡Equipo creado con éxito!');
-        } catch (e) { 
-            mostrarMsg(e.response?.data?.error || 'Error al crear equipo', 'error'); 
-        } finally { 
-            setGuardando(false); 
+        } catch (e) {
+            mostrarMsg(e.response?.data?.error || 'Error al crear equipo', 'error');
+        } finally {
+            setGuardando(false);
         }
     };
 
@@ -125,10 +133,10 @@ export default function Equipo() {
             setMsgInvitar(data.mensaje);
             setFormInvitar({ email:'', rol:'editor' });
             verDetalle(equipoSel.id);
-        } catch (e) { 
-            setMsgInvitar(e.response?.data?.error || 'Error'); 
-        } finally { 
-            setGuardando(false); 
+        } catch (e) {
+            setMsgInvitar(e.response?.data?.error || 'Error');
+        } finally {
+            setGuardando(false);
         }
     };
 
@@ -143,8 +151,8 @@ export default function Equipo() {
             setEquipoSel(e => ({ ...e, miembros: e.miembros.map(m => m.id === miembro_id ? { ...m, rol } : m) }));
             setModalRol(null);
             mostrarMsg('Rol actualizado correctamente');
-        } catch (e) { 
-            mostrarMsg(e.response?.data?.error || 'Error al cambiar rol', 'error'); 
+        } catch (e) {
+            mostrarMsg(e.response?.data?.error || 'Error al cambiar rol', 'error');
         }
     };
 
@@ -154,8 +162,8 @@ export default function Equipo() {
             await api.eliminarMiembro(equipoSel.id, miembro_id);
             setEquipoSel(e => ({ ...e, miembros: e.miembros.filter(m => m.id !== miembro_id) }));
             mostrarMsg('Miembro expulsado del equipo', 'error');
-        } catch (e) { 
-            mostrarMsg(e.response?.data?.error || 'Error al expulsar miembro', 'error'); 
+        } catch (e) {
+            mostrarMsg(e.response?.data?.error || 'Error al expulsar miembro', 'error');
         }
     };
 
@@ -189,10 +197,27 @@ export default function Equipo() {
             setFormTarea({ titulo:'', descripcion:'', prioridad:'media', fecha_limite:'', asignado_a:'' });
             verDetalle(equipoSel.id);
             mostrarMsg('Tarea creada correctamente');
-        } catch (e) { 
-            mostrarMsg(e.response?.data?.error || 'Error al crear la tarea', 'error'); 
-        } finally { 
-            setGuardando(false); 
+        } catch (e) {
+            mostrarMsg(e.response?.data?.error || 'Error al crear la tarea', 'error');
+        } finally {
+            setGuardando(false);
+        }
+    };
+
+    // ── Eliminar equipo (solo admin) ──────────────────────────────────
+    const eliminarEquipoActual = async () => {
+        setGuardando(true);
+        try {
+            await api.eliminarEquipo(equipoSel.id);
+            setModalEliminarEquipo(false);
+            setVista('lista');
+            setEquipoSel(null);
+            cargarEquipos();
+            mostrarMsg('Equipo eliminado correctamente', 'error');
+        } catch (e) {
+            mostrarMsg(e.response?.data?.error || 'Error al eliminar el equipo', 'error');
+        } finally {
+            setGuardando(false);
         }
     };
 
@@ -263,6 +288,12 @@ export default function Equipo() {
                             <div style={{ display:'flex', gap:8 }}>
                                 {esAdmin  && <button onClick={() => { setModalInvitar(true); setLinkInvitacion(''); setMsgInvitar(''); }} style={b.sec}>+ Invitar</button>}
                                 {esEditor && <button onClick={() => setModalTarea(true)} style={b.pri}>+ Tarea</button>}
+                                {esAdmin  && (
+                                    <button onClick={() => setModalEliminarEquipo(true)}
+                                        style={{ ...b.sec, color:'var(--danger)', borderColor:'#F43F5E40' }}>
+                                        Eliminar sala
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -529,6 +560,16 @@ export default function Equipo() {
                     mensaje={`¿Expulsar a ${miembroAExpulsar?.nombre}?`}
                     onConfirmar={confirmarExpulsion}
                     onCancelar={() => { setIsModalOpen(false); setMiembroAExpulsar(null); }}
+                />
+            )}
+
+            {/* Modal confirmación eliminar equipo (solo visible para admin) */}
+            {modalEliminarEquipo && (
+                <ModalConfirmacion
+                    isOpen={modalEliminarEquipo}
+                    mensaje={`¿Eliminar el equipo "${equipoSel?.nombre}"? Se eliminarán también todos sus miembros y tareas asociadas. Esta acción no se puede deshacer.`}
+                    onConfirmar={eliminarEquipoActual}
+                    onCancelar={() => setModalEliminarEquipo(false)}
                 />
             )}
         </div>

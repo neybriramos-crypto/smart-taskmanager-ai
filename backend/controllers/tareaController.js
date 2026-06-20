@@ -6,32 +6,40 @@ const tareaController = {
 
     //Crear tarea
     crearTarea: async (req, res) => {
-        const { titulo, descripcion, prioridad, fecha_limite } = req.body;
+        const { titulo, descripcion, prioridad, fecha_limite, equipo_id, asignado_a } = req.body;
         const usuario_id = req.usuario.id;
-
+    
         if (!titulo) {
             return res.status(400).json({ error: 'El título de la tarea es obligatorio' });
         }
-
+    
         try {
             const nuevaTareaId = await Tarea.create(
-                usuario_id, titulo, descripcion, prioridad, fecha_limite
+                usuario_id, titulo, descripcion, prioridad, fecha_limite, equipo_id, asignado_a
             );
-
+    
             const nuevaTarea = {
                 id: nuevaTareaId,
                 usuario_id,
+                equipo_id:    equipo_id    || null,
+                asignado_a:   asignado_a   || null,
                 titulo,
-                descripcion: descripcion || null,
-                prioridad:   prioridad   || 'baja',
-                estado:      'pendiente',
+                descripcion:  descripcion  || null,
+                prioridad:    prioridad    || 'baja',
+                estado:       'pendiente',
                 fecha_limite: fecha_limite || null,
             };
-
-            // Emitir a la sala del usuario para tiempo real mediante Sockets
+    
             const io = req.app.get('io');
-            if (io) io.to(`usuario_${usuario_id}`).emit('tarea:creada', nuevaTarea);
-
+    
+            if (equipo_id) {
+                // Tarea de equipo: emitir a la sala del equipo para que todos los miembros la vean en tiempo real
+                io.to(`equipo_${equipo_id}`).emit('tarea:creada', nuevaTarea);
+            } else {
+                // Tarea personal: emitir solo al usuario
+                io.to(`usuario_${usuario_id}`).emit('tarea:creada', nuevaTarea);
+            }
+    
             res.status(201).json({ mensaje: 'Tarea creada con éxito', tarea: nuevaTarea });
         } catch (error) {
             console.error('[Tareas] Error al crear:', error);
