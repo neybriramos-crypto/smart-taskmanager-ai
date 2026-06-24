@@ -18,6 +18,39 @@ function requireAI() {
 }
 
 /**
+ * Detecta si un error de Gemini corresponde a sobrecarga temporal del servicio
+ * (503 / UNAVAILABLE), que normalmente se resuelve reintentando.
+ */
+function esErrorSobrecarga(error) {
+    const status = error?.status || error?.response?.status;
+    const mensaje = (error?.message || '').toLowerCase();
+    return status === 503 || mensaje.includes('overloaded') || mensaje.includes('unavailable');
+}
+
+/**
+ * Envuelve una llamada a la API de Gemini con reintentos automáticos
+ * y backoff incremental cuando el servicio responde con sobrecarga (503).
+ */
+async function llamarConReintento(fn, intentos = 3, delayMs = 1000) {
+    let ultimoError;
+    for (let i = 0; i < intentos; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            ultimoError = error;
+            if (esErrorSobrecarga(error) && i < intentos - 1) {
+                const espera = delayMs * (i + 1);
+                console.warn(`[iaService] Gemini sobrecargado, reintentando en ${espera}ms (intento ${i + 1}/${intentos})...`);
+                await new Promise(resolve => setTimeout(resolve, espera));
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw ultimoError;
+}
+
+/**
  * Limpia y parsea de forma segura el JSON devuelto por Gemini,
  * eliminando bloques de código markdown si la IA los incluye.
  */
@@ -35,7 +68,7 @@ function parsearJSON(texto) {
 
 const iaService = {
     /**
-     *Generar Subtareas (JSON)
+     * Generar Subtareas (JSON)
      */
     generarSubtareas: async (titulo, descripcion) => {
         try {
@@ -49,13 +82,15 @@ const iaService = {
             Responde ÚNICAMENTE con un arreglo JSON de strings, sin texto adicional ni introducciones:
             ["Subtarea 1", "Subtarea 2", "Subtarea 3"]`;
 
-            const response = await ai.models.generateContent({
-                model: MODEL_NAME,
-                contents: prompt,
-                config: { 
-                    responseMimeType: "application/json" 
-                }
-            });
+            const response = await llamarConReintento(() =>
+                ai.models.generateContent({
+                    model: MODEL_NAME,
+                    contents: prompt,
+                    config: {
+                        responseMimeType: "application/json"
+                    }
+                })
+            );
 
             return parsearJSON(response.text);
         } catch (error) {
@@ -78,13 +113,15 @@ const iaService = {
             Responde SOLO con este formato JSON válido, sin decoraciones markdown ni texto extra:
             [{"id": 1, "titulo": "...", "estimado_minutos": 30}]`;
 
-            const response = await ai.models.generateContent({
-                model: MODEL_NAME,
-                contents: prompt,
-                config: { 
-                    responseMimeType: "application/json" 
-                }
-            });
+            const response = await llamarConReintento(() =>
+                ai.models.generateContent({
+                    model: MODEL_NAME,
+                    contents: prompt,
+                    config: {
+                        responseMimeType: "application/json"
+                    }
+                })
+            );
 
             return parsearJSON(response.text);
         } catch (error) {
@@ -105,15 +142,17 @@ const iaService = {
                 parts: [{ text: m.contenido }]
             }));
 
-            const response = await ai.models.generateContent({
-                model: MODEL_NAME,
-                contents: contents,
-                config: {
-                    systemInstruction: `Eres un asistente de productividad integrado en Smart Task Manager. 
-                    Sé conciso, práctico y amigable. Responde siempre en español.
-                    Contexto actual de las tareas del usuario: ${contextoTareas}`
-                }
-            });
+            const response = await llamarConReintento(() =>
+                ai.models.generateContent({
+                    model: MODEL_NAME,
+                    contents: contents,
+                    config: {
+                        systemInstruction: `Eres un asistente de productividad integrado en Smart Task Manager. 
+                        Sé conciso, práctico y amigable. Responde siempre en español.
+                        Contexto actual de las tareas del usuario: ${contextoTareas}`
+                    }
+                })
+            );
 
             return response.text;
         } catch (error) {
@@ -123,7 +162,7 @@ const iaService = {
     },
 
     /**
-     *Análisis Completo de Productividad (Markdown)
+     * Análisis Completo de Productividad (Markdown)
      */
     analizarProductividad: async (stats, tareas) => {
         try {
@@ -154,10 +193,12 @@ const iaService = {
             
             Sé directo, práctico y motivador.`;
 
-            const response = await ai.models.generateContent({
-                model: MODEL_NAME,
-                contents: prompt,
-            });
+            const response = await llamarConReintento(() =>
+                ai.models.generateContent({
+                    model: MODEL_NAME,
+                    contents: prompt,
+                })
+            );
 
             return response.text;
         } catch (error) {

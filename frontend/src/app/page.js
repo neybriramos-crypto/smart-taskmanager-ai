@@ -480,18 +480,25 @@ export default function Dashboard() {
                                             <div style={{ height:3, background:'var(--border)', borderRadius:2, marginBottom:8 }}>
                                                 <div style={{ height:'100%', width:`${subProg}%`, background:'var(--success)', borderRadius:2 }}/>
                                             </div>
-                                            {st.map(sub => (
-                                                <label key={sub.id} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', marginBottom:5 }}>
-                                                    <input type="checkbox" checked={!!sub.completada}
-                                                        onChange={() => toggleSub(tarea.id, sub.id, !sub.completada)}
-                                                        style={{ accentColor:'var(--accent)', width:14, height:14 }}/>
-                                                    <span style={{ fontSize:12,
-                                                        color: sub.completada ? 'var(--muted)' : 'var(--text)',
-                                                        textDecoration: sub.completada ? 'line-through' : 'none' }}>
-                                                        {typeof sub === 'string' ? sub : sub.texto}
-                                                    </span>
-                                                </label>
-                                            ))}
+                                            {st.map((sub, index) => {
+                                                const textoSub = typeof sub === 'string'
+                                                    ? sub
+                                                    : (typeof sub?.texto === 'string' ? sub.texto : String(sub?.texto ?? sub));
+                                                const key = typeof sub === 'string' ? `${tarea.id}-sub-${index}` : sub.id;
+
+                                                return (
+                                                    <label key={key} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', marginBottom:5 }}>
+                                                        <input type="checkbox" checked={!!sub.completada}
+                                                            onChange={() => toggleSub(tarea.id, sub.id, !sub.completada)}
+                                                            style={{ accentColor:'var(--accent)', width:14, height:14 }}/>
+                                                        <span style={{ fontSize:12,
+                                                            color: sub.completada ? 'var(--muted)' : 'var(--text)',
+                                                            textDecoration: sub.completada ? 'line-through' : 'none' }}>
+                                                            {textoSub}
+                                                        </span>
+                                                    </label>
+                                                );
+                                            })}
                                         </div>
                                     )}
 

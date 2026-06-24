@@ -2,6 +2,16 @@ const db = require('../config/db');
 const Tarea = require('../models/tareaModel');
 const iaService = require('../services/iaService');
 
+/**
+ * Detecta si un error proviene de sobrecarga temporal del servicio de IA (503),
+ * para devolver al cliente un código y mensaje más útiles que un 500 genérico.
+ */
+function esErrorSobrecargaIA(error) {
+    const status = error?.status || error?.response?.status;
+    const mensaje = (error?.message || '').toLowerCase();
+    return status === 503 || mensaje.includes('overloaded') || mensaje.includes('unavailable');
+}
+
 const tareaController = {
 
     //Crear tarea
@@ -149,6 +159,13 @@ const tareaController = {
             });
         } catch (error) {
             console.error('[IA] Error al generar subtareas:', error);
+
+            if (esErrorSobrecargaIA(error)) {
+                return res.status(503).json({
+                    error: 'El servicio de IA está sobrecargado en este momento. Intenta de nuevo en unos segundos.'
+                });
+            }
+
             res.status(500).json({ error: 'Error interno al generar subtareas con IA' });
         }
     },
@@ -198,6 +215,13 @@ const tareaController = {
             res.json({ orden });
         } catch (error) {
             console.error('[IA] Error al priorizar:', error);
+
+            if (esErrorSobrecargaIA(error)) {
+                return res.status(503).json({
+                    error: 'El servicio de IA está sobrecargado en este momento. Intenta de nuevo en unos segundos.'
+                });
+            }
+
             res.status(500).json({ error: 'Error al priorizar tareas con IA' });
         }
     },
