@@ -60,8 +60,9 @@ const tareaController = {
     //Obtener todas las tareas
     obtenerTareas: async (req, res) => {
         const usuario_id = req.usuario.id;
+        const vista = req.query.vista || 'todas';
         try {
-            const tareas = await Tarea.findAllByUsuario(usuario_id);
+            const tareas = await Tarea.findAllByUsuario(usuario_id, vista);
             res.json(tareas);
         } catch (error) {
             console.error('[Tareas] Error al obtener:', error);

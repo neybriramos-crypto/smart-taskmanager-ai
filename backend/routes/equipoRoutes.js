@@ -1,6 +1,7 @@
 const express          = require('express');
 const router           = express.Router();
 const equipoController = require('../controllers/equipoController');
+const archivoSalaController = require('../controllers/archivoSalaController');
 const authMiddleware   = require('../middlewares/authMiddleware');
 
 router.use(authMiddleware);
@@ -20,5 +21,11 @@ router.post('/invitacion/:token/aceptar',              equipoController.aceptarI
 // Gestión orgánica de la nómina de miembros internos
 router.put('/:equipo_id/miembros/:miembro_id/rol',    equipoController.cambiarRol);
 router.delete('/:equipo_id/miembros/:miembro_id',     equipoController.eliminarMiembro);
+
+// Archivos compartidos por sala
+router.get('/:id/archivos',                           archivoSalaController.listar);
+router.post('/:id/archivos',                          archivoSalaController.subir);
+router.get('/:id/archivos/:archivoId',                archivoSalaController.descargar);
+router.delete('/:id/archivos/:archivoId',             archivoSalaController.eliminar);
 
 module.exports = router;

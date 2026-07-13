@@ -14,6 +14,32 @@ const PRIORIDAD_C = {
 const ESTADOS = { pendiente:'Pendiente', en_progreso:'En progreso', completada:'Completada' };
 const TAREA_VACIA = { titulo:'', descripcion:'', prioridad:'media', estado:'pendiente', fecha_limite:'' };
 
+const normalizarSubtarea = (sub, idx, tareaId) => {
+    if (typeof sub === 'string') {
+        return { id: `ia-${tareaId}-${idx}`, texto: sub, completada: 0 };
+    }
+
+    const texto = typeof sub?.texto === 'string'
+        ? sub.texto
+        : typeof sub?.contenido === 'string'
+            ? sub.contenido
+            : typeof sub?.descripcion === 'string'
+                ? sub.descripcion
+                : String(sub ?? `Subtarea ${idx + 1}`);
+
+    return {
+        id: sub?.id ?? `ia-${tareaId}-${idx}`,
+        texto,
+        completada: typeof sub?.completada === 'number'
+            ? sub.completada
+            : sub?.completada ? 1 : 0,
+    };
+};
+
+const normalizarSubtareas = (subs, tareaId) =>
+    Array.isArray(subs) ? subs.map((sub, index) => normalizarSubtarea(sub, index, tareaId)) : [];
+
+
 // ── Modal de Notificación con Temporizador — FUERA del componente principal ──
 function NotificationModal({ isOpen, mensaje, tipo = 'success', duracion = 3500, onClose }) {
     const [progreso, setProgreso] = useState(100);
@@ -241,6 +267,7 @@ export default function Dashboard() {
     const [usuario,    setUsuario]    = useState(null);
     const [tareas,     setTareas]     = useState([]);
     const [filtro,     setFiltro]     = useState('todas');
+    const [vistaTareas, setVistaTareas] = useState('todas');
     const [cargandoIA, setCIA]        = useState({});
     const [modalNueva,  setModalNueva]  = useState(false);
     const [modalEditar, setModalEditar] = useState(null);
@@ -260,7 +287,7 @@ export default function Dashboard() {
         const u     = localStorage.getItem('usuario');
         if (!token || !u) { router.push('/login'); return; }
         try { setUsuario(JSON.parse(u)); } catch { router.push('/login'); return; }
-        cargarTareas();
+        cargarTareas(vistaTareas);
     }, []);
 
     useSocket(usuario?.id, {
@@ -268,15 +295,19 @@ export default function Dashboard() {
         onTareaActualizada:   t  => setTareas(p => p.map(x => x.id === t.id ? { ...x, ...t } : x)),
         onTareaEliminada:     ({ id }) => setTareas(p => p.filter(x => x.id !== id)),
         onSubtareasGeneradas: ({ tareaId, subtareas }) =>
-            setTareas(p => p.map(x => x.id === tareaId ? { ...x, subtareas } : x)),
+            setTareas(p => p.map(x => x.id === tareaId ? { ...x, subtareas: normalizarSubtareas(subtareas, tareaId) } : x)),
     });
 
-    const cargarTareas = useCallback(async () => {
+    const cargarTareas = useCallback(async (vista = vistaTareas) => {
         try {
-            const { data: lista } = await api.obtenerTareas();
+            const { data: lista } = await api.obtenerTareas(vista);
             const con = await Promise.all(lista.map(async t => {
-                try { const { data: subs } = await api.obtenerSubtareas(t.id); return { ...t, subtareas: subs }; }
-                catch { return { ...t, subtareas: [] }; }
+                try {
+                    const { data: subs } = await api.obtenerSubtareas(t.id);
+                    return { ...t, subtareas: normalizarSubtareas(subs, t.id) };
+                } catch {
+                    return { ...t, subtareas: [] };
+                }
             }));
             setTareas(con);
         } catch (err) {
@@ -290,7 +321,12 @@ export default function Dashboard() {
             mostrarNotificacion('Error al sincronizar las tareas con el servidor', 'error');
             setTareas([]);
         }
-    }, []);
+    }, [vistaTareas]);
+
+    const cambiarVistaTareas = async (vista) => {
+        setVistaTareas(vista);
+        await cargarTareas(vista);
+    };
 
     const stats = {
         total:       tareas.length,
@@ -308,7 +344,7 @@ export default function Dashboard() {
             await api.crearTarea(formTarea);
             setModalNueva(false);
             setFormTarea(TAREA_VACIA);
-            cargarTareas();
+            cargarTareas(vistaTareas);
             mostrarNotificacion('¡Tarea creada correctamente!', 'success');
         } catch (e) { 
             mostrarNotificacion(e.response?.data?.error || 'Error al crear la tarea', 'error'); 
@@ -358,15 +394,14 @@ export default function Dashboard() {
     const generarSubtareas = async (tareaId) => {
         setCIA(p => ({ ...p, [tareaId]: true }));
         try {
-            const { data } = await api.generarSubtareasIA(tareaId);
-            setTareas(p => p.map(t => t.id === tareaId
-                ? { ...t, subtareas: data.subtareas.map((tx, i) => ({ id:`ia-${i}`, texto:tx, completada:0 })) }
-                : t));
+            await api.generarSubtareasIA(tareaId);
             mostrarNotificacion('Subtareas desglosadas por la IA con éxito', 'success');
-        } catch { 
-            mostrarNotificacion('No se pudo generar el desglose con IA', 'error'); 
+        } catch (error) {
+            console.error('[IA] Error al solicitar generación de subtareas:', error.response?.data || error.message || error);
+            mostrarNotificacion('No se pudo generar el desglose con IA', 'error');
+        } finally {
+            setCIA(p => ({ ...p, [tareaId]: false }));
         }
-        finally { setCIA(p => ({ ...p, [tareaId]: false })); }
     };
 
     const toggleSub = async (tareaId, subId, estado) => {
@@ -409,15 +444,43 @@ export default function Dashboard() {
                 </div>
 
                 {/* Filtros */}
-                <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:20, alignItems:'center' }}>
+                    <div style={{ position:'relative' }}>
+                        <select
+                            value={vistaTareas}
+                            onChange={(e) => cambiarVistaTareas(e.target.value)}
+                            style={{
+                                ...btn.filtro,
+                                appearance:'none',
+                                minWidth:180,
+                                textAlign:'left',
+                                paddingRight:34,
+                                background:'var(--surface)',
+                                border:'1px solid var(--border)',
+                                color:'var(--text)',
+                                cursor:'pointer',
+                            }}
+                        >
+                            <option value="todas">Todas</option>
+                            <option value="personales">Mis tareas</option>
+                            <option value="equipo">Tareas en equipo</option>
+                        </select>
+                        <span style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color:'var(--muted)', fontSize:12 }}>▾</span>
+                    </div>
                     {[
-                        { k:'todas',       label:'Todas'       },
-                        { k:'pendiente',   label:'Pendientes'  },
+                        { k:'todas', label:'Todas' },
+                        { k:'pendiente', label:'Pendientes' },
                         { k:'en_progreso', label:'En progreso' },
-                        { k:'completada',  label:'Completadas' },
+                        { k:'completada', label:'Completadas' },
                     ].map(({ k, label }) => (
                         <button key={k} onClick={() => setFiltro(k)}
-                            style={{ ...btn.filtro, ...(filtro === k ? btn.filtroAct : {}) }}>
+                            style={{
+                                ...btn.filtro,
+                                ...(filtro === k ? btn.filtroAct : {}),
+                                padding:'8px 12px',
+                                borderRadius:999,
+                                fontWeight:600,
+                            }}>
                             {label}
                         </button>
                     ))}
@@ -483,7 +546,7 @@ export default function Dashboard() {
                                             {st.map((sub, index) => {
                                                 const textoSub = typeof sub === 'string'
                                                     ? sub
-                                                    : (typeof sub?.texto === 'string' ? sub.texto : String(sub?.texto ?? sub));
+                                                    : sub?.texto ?? sub?.contenido ?? sub?.descripcion ?? String(sub ?? '');
                                                 const key = typeof sub === 'string' ? `${tarea.id}-sub-${index}` : sub.id;
 
                                                 return (

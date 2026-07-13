@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
+const { validatePassword } = require('../utils/passwordValidator');
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -78,8 +79,10 @@ const recuperacionController = {
         if (!email || !codigo || !nuevaPassword) {
             return res.status(400).json({ error: 'Todos los campos son obligatorios' });
         }
-        if (nuevaPassword.length < 6) {
-            return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+
+        const passwordValidation = validatePassword(nuevaPassword);
+        if (!passwordValidation.valid) {
+            return res.status(400).json({ error: passwordValidation.error });
         }
 
         try {

@@ -2,6 +2,7 @@ const Config  = require('../models/configModel');
 const Usuario = require('../models/usuarioModel');
 const bcrypt  = require('bcryptjs');
 const db      = require('../config/db');
+const { validatePassword } = require('../utils/passwordValidator');
 
 const configController = {
 
@@ -37,8 +38,11 @@ const configController = {
         const { password_actual, password_nueva } = req.body;
         if (!password_actual || !password_nueva)
             return res.status(400).json({ error: 'Ambas contraseñas son requeridas' });
-        if (password_nueva.length < 6)
-            return res.status(400).json({ error: 'Mínimo 6 caracteres' });
+
+        const passwordValidation = validatePassword(password_nueva);
+        if (!passwordValidation.valid) {
+            return res.status(400).json({ error: passwordValidation.error });
+        }
         try {
             const [rows] = await db.query('SELECT password FROM usuarios WHERE id = ?', [req.usuario.id]);
             const valido = await bcrypt.compare(password_actual, rows[0].password);

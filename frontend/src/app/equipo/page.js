@@ -55,6 +55,11 @@ export default function Equipo() {
     const [formInvitar, setFormInvitar] = useState({ email:'', rol:'editor' });
     const [formTarea,   setFormTarea]   = useState({ titulo:'', descripcion:'', prioridad:'media', fecha_limite:'', asignado_a:'' });
     const [msgInvitar,  setMsgInvitar]  = useState('');
+    const [archivos, setArchivos] = useState([]);
+    const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+    const puedeEliminarArchivos = Boolean(
+        equipoSel?.miembros?.some((miembro) => miembro.id === usuario?.id && miembro.rol === 'admin')
+    );
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -96,10 +101,73 @@ export default function Equipo() {
             setEquipoSel(data);
             setVista('detalle');
             unirseEquipo(id);
+            cargarArchivos(id);
         } catch {
             mostrarMsg('Error al cargar el equipo', 'error');
         } finally {
             setCargando(false);
+        }
+    };
+
+    const cargarArchivos = async (id) => {
+        try {
+            const { data } = await api.listarArchivosSala(id);
+            setArchivos(data || []);
+        } catch {
+            setArchivos([]);
+        }
+    };
+
+    const adjuntarArchivo = async (event) => {
+        const archivo = event.target.files?.[0];
+        if (!archivo || !equipoSel?.id) return;
+
+        setSubiendoArchivo(true);
+        try {
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const contenido = reader.result.split(',')[1] || '';
+                const payload = {
+                    nombre: archivo.name,
+                    tipo: archivo.type || 'application/octet-stream',
+                    tamanio: archivo.size,
+                    contenido,
+                };
+
+                const { data } = await api.subirArchivoSala(equipoSel.id, payload);
+                setArchivos(prev => [{ id: data.archivo.id, nombre: data.archivo.nombre, tipo: data.archivo.tipo, tamanio: data.archivo.tamanio, subido_por: usuario?.nombre || 'Tú', creado_en: new Date().toISOString() }, ...prev]);
+                mostrarMsg('Archivo adjuntado correctamente');
+            };
+            reader.readAsDataURL(archivo);
+        } catch {
+            mostrarMsg('No se pudo adjuntar el archivo', 'error');
+        } finally {
+            setSubiendoArchivo(false);
+            event.target.value = '';
+        }
+    };
+
+    const descargarArchivo = async (archivo) => {
+        try {
+            const { data } = await api.descargarArchivoSala(equipoSel.id, archivo.id);
+            const blob = new Blob([Buffer.from(data.contenido, 'base64')], { type: data.tipo });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = data.nombre;
+            link.click();
+            window.URL.revokeObjectURL(link.href);
+        } catch {
+            mostrarMsg('No se pudo descargar el archivo', 'error');
+        }
+    };
+
+    const eliminarArchivo = async (archivoId) => {
+        try {
+            await api.eliminarArchivoSala(equipoSel.id, archivoId);
+            setArchivos(prev => prev.filter(a => a.id !== archivoId));
+            mostrarMsg('Archivo eliminado correctamente');
+        } catch {
+            mostrarMsg('No se pudo eliminar el archivo', 'error');
         }
     };
 
@@ -345,6 +413,35 @@ export default function Equipo() {
                                         })}
                                     </div>
                                 )}
+
+                                <div style={{ marginTop:20, padding:'14px 0', borderTop:'1px solid var(--border)' }}>
+                                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                                        <p style={sec.titulo}>Archivos de la sala</p>
+                                        <label style={{ ...b.sec, cursor:'pointer', fontSize:12, display:'inline-flex', alignItems:'center' }}>
+                                            {subiendoArchivo ? 'Subiendo...' : '+ Adjuntar'}
+                                            <input type="file" onChange={adjuntarArchivo} style={{ display:'none' }} />
+                                        </label>
+                                    </div>
+                                    {archivos.length === 0 ? (
+                                        <div style={{ padding:'16px 0', color:'var(--muted)', fontSize:12 }}>Aún no hay archivos compartidos en esta sala.</div>
+                                    ) : (
+                                        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                                            {archivos.map(archivo => (
+                                                <div key={archivo.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 12px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:10 }}>
+                                                    <button onClick={() => descargarArchivo(archivo)} style={{ flex:1, background:'transparent', border:'none', color:'var(--text)', cursor:'pointer', textAlign:'left', padding:0 }}>
+                                                        <div style={{ fontSize:13, fontWeight:600 }}>{archivo.nombre}</div>
+                                                        <div style={{ fontSize:11, color:'var(--muted)', marginTop:2 }}>{archivo.subido_por} · {Math.round((archivo.tamanio || 0) / 1024)} KB</div>
+                                                    </button>
+                                                    {puedeEliminarArchivos && (
+                                                        <button onClick={() => eliminarArchivo(archivo.id)} style={{ marginLeft:8, background:'transparent', border:'none', color:'var(--danger)', cursor:'pointer', fontSize:14 }} title="Eliminar archivo">
+                                                            ✕
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Miembros */}

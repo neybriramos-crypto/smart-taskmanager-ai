@@ -18,6 +18,7 @@ export default function Configuracion() {
     const [formConfig, setFormConfig] = useState({ tema: 'oscuro', notif_email: 1, notif_vencimiento: 1, notif_equipo: 1 });
     const [passElim, setPassElim] = useState('');
     const [confirmElim, setConfirmElim] = useState(false);
+    const [showPasswords, setShowPasswords] = useState({ actual:false, nueva:false, confirmar:false, eliminar:false });
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -78,9 +79,22 @@ export default function Configuracion() {
         }
     };
 
+    const validatePassword = (password) => {
+        if (password.length < 9) return 'Debe tener más de 8 caracteres.';
+        if (!/[A-Z]/.test(password)) return 'Debe incluir al menos una mayúscula.';
+        if (!/[a-z]/.test(password)) return 'Debe incluir al menos una minúscula.';
+        if (!/\d/.test(password)) return 'Debe incluir al menos un número.';
+        if (!/[.!$#%*]/.test(password)) return 'Debe incluir al menos uno de estos caracteres especiales: . ! $ # % *';
+        if (!/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[.!$#%*])[A-Za-z\d.!$#%*]{9,}$/.test(password)) {
+            return 'Solo se permiten letras, números y estos caracteres especiales: . ! $ # % *';
+        }
+        return '';
+    };
+
     const guardarPassword = async () => {
         if (!formPass.password_actual || !formPass.password_nueva) return notificar('Completa los campos', 'error');
-        if (formPass.password_nueva.length < 6) return notificar('La nueva contraseña debe tener al menos 6 caracteres', 'error');
+        const passwordError = validatePassword(formPass.password_nueva);
+        if (passwordError) return notificar(passwordError, 'error');
         if (formPass.password_nueva !== formPass.confirmar) return notificar('Las contraseñas no coinciden', 'error');
         setGuardando(true);
         try {
@@ -175,13 +189,59 @@ export default function Configuracion() {
                             <>
                                 <SectionTitle icon="⊕" title="Cambiar contraseña"/>
                                 <Campo label="Contraseña actual">
-                                    <input type="password" value={formPass.password_actual} onChange={e => setFormPass(p => ({ ...p, password_actual:e.target.value }))} placeholder="••••••••" style={inp}/>
+                                    <div style={{ position:'relative' }}>
+                                        <input type={showPasswords.actual ? 'text' : 'password'} value={formPass.password_actual} onChange={e => setFormPass(p => ({ ...p, password_actual:e.target.value }))} placeholder="••••••••" style={{ ...inp, paddingRight:42 }}/>
+                                        <button type="button" onClick={() => setShowPasswords(p => ({ ...p, actual: !p.actual }))} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'transparent', border:'none', cursor:'pointer', fontSize:16, color:'var(--muted)' }} aria-label={showPasswords.actual ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPasswords.actual ? (
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M3 3l18 18" />
+                                                <path d="M10.6 10.6A2 2 0 0 0 13.4 13.4" />
+                                                <path d="M9.88 5.08A10.94 10.94 0 0 1 12 5c4.1 0 7.6 2.5 9 6a11.2 11.2 0 0 1-2.6 3.6" />
+                                                <path d="M6.61 6.61A10.94 10.94 0 0 0 3 11c1.4 3.5 4.9 6 9 6a10.1 10.1 0 0 0 3.4-.6" />
+                                            </svg>
+                                        ) : (
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                        )}</button>
+                                    </div>
                                 </Campo>
                                 <Campo label="Nueva contraseña">
-                                    <input type="password" value={formPass.password_nueva} onChange={e => setFormPass(p => ({ ...p, password_nueva:e.target.value }))} placeholder="Mínimo 6 caracteres" style={inp}/>
+                                    <div style={{ position:'relative' }}>
+                                        <input type={showPasswords.nueva ? 'text' : 'password'} value={formPass.password_nueva} onChange={e => setFormPass(p => ({ ...p, password_nueva:e.target.value }))} placeholder="Mínimo 9 caracteres" style={{ ...inp, paddingRight:42 }}/>
+                                        <button type="button" onClick={() => setShowPasswords(p => ({ ...p, nueva: !p.nueva }))} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'transparent', border:'none', cursor:'pointer', fontSize:16, color:'var(--muted)' }} aria-label={showPasswords.nueva ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPasswords.nueva ? (
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M3 3l18 18" />
+                                                <path d="M10.6 10.6A2 2 0 0 0 13.4 13.4" />
+                                                <path d="M9.88 5.08A10.94 10.94 0 0 1 12 5c4.1 0 7.6 2.5 9 6a11.2 11.2 0 0 1-2.6 3.6" />
+                                                <path d="M6.61 6.61A10.94 10.94 0 0 0 3 11c1.4 3.5 4.9 6 9 6a10.1 10.1 0 0 0 3.4-.6" />
+                                            </svg>
+                                        ) : (
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                        )}</button>
+                                    </div>
                                 </Campo>
+                                <div style={{ fontSize:12, color:'var(--muted)', marginTop:-8, marginBottom:8 }}>Debe incluir mayúscula, minúscula, número y uno de estos caracteres especiales: . ! $ # % *</div>
                                 <Campo label="Confirmar nueva contraseña">
-                                    <input type="password" value={formPass.confirmar} onChange={e => setFormPass(p => ({ ...p, confirmar:e.target.value }))} placeholder="••••••••" style={inp}/>
+                                    <div style={{ position:'relative' }}>
+                                        <input type={showPasswords.confirmar ? 'text' : 'password'} value={formPass.confirmar} onChange={e => setFormPass(p => ({ ...p, confirmar:e.target.value }))} placeholder="••••••••" style={{ ...inp, paddingRight:42 }}/>
+                                        <button type="button" onClick={() => setShowPasswords(p => ({ ...p, confirmar: !p.confirmar }))} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'transparent', border:'none', cursor:'pointer', fontSize:16, color:'var(--muted)' }} aria-label={showPasswords.confirmar ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPasswords.confirmar ? (
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M3 3l18 18" />
+                                                <path d="M10.6 10.6A2 2 0 0 0 13.4 13.4" />
+                                                <path d="M9.88 5.08A10.94 10.94 0 0 1 12 5c4.1 0 7.6 2.5 9 6a11.2 11.2 0 0 1-2.6 3.6" />
+                                                <path d="M6.61 6.61A10.94 10.94 0 0 0 3 11c1.4 3.5 4.9 6 9 6a10.1 10.1 0 0 0 3.4-.6" />
+                                            </svg>
+                                        ) : (
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                        )}</button>
+                                    </div>
                                 </Campo>
                                 <button onClick={guardarPassword} disabled={guardando} style={b.pri}>
                                     {guardando ? 'Actualizando...' : 'Cambiar contraseña'}
@@ -262,9 +322,24 @@ export default function Configuracion() {
                                             <p style={{ fontSize:13, fontWeight:600, color:'var(--danger)' }}>
                                                 ¿Estás completamente seguro? Escribe tu contraseña para confirmar:
                                             </p>
-                                            <input type="password" value={passElim}
-                                                onChange={e => setPassElim(e.target.value)}
-                                                placeholder="Tu contraseña actual" style={inp}/>
+                                            <div style={{ position:'relative' }}>
+                                                <input type={showPasswords.eliminar ? 'text' : 'password'} value={passElim}
+                                                    onChange={e => setPassElim(e.target.value)}
+                                                    placeholder="Tu contraseña actual" style={{ ...inp, paddingRight:42 }}/>
+                                                <button type="button" onClick={() => setShowPasswords(p => ({ ...p, eliminar: !p.eliminar }))} style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'transparent', border:'none', cursor:'pointer', fontSize:16, color:'var(--muted)' }} aria-label={showPasswords.eliminar ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPasswords.eliminar ? (
+                                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M3 3l18 18" />
+                                                        <path d="M10.6 10.6A2 2 0 0 0 13.4 13.4" />
+                                                        <path d="M9.88 5.08A10.94 10.94 0 0 1 12 5c4.1 0 7.6 2.5 9 6a11.2 11.2 0 0 1-2.6 3.6" />
+                                                        <path d="M6.61 6.61A10.94 10.94 0 0 0 3 11c1.4 3.5 4.9 6 9 6a10.1 10.1 0 0 0 3.4-.6" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                                                        <circle cx="12" cy="12" r="3" />
+                                                    </svg>
+                                                )}</button>
+                                            </div>
                                             <div style={{ display:'flex', gap:10 }}>
                                                 <button onClick={() => { setConfirmElim(false); setPassElim(''); }}
                                                     style={{ flex:1, padding:'10px 0', borderRadius:8, background:'transparent', border:'1px solid var(--border)', color:'var(--muted)', fontSize:13, cursor:'pointer' }}>

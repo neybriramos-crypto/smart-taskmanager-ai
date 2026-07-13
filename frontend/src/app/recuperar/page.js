@@ -11,6 +11,7 @@ export default function RecuperarPassword() {
     const [error, setError] = useState('');
     const [exito, setExito] = useState('');
     const [cargando, setCargando] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const enviarEmail = async () => {
         setError('');
@@ -27,10 +28,23 @@ export default function RecuperarPassword() {
         }
     };
 
+    const validatePassword = (password) => {
+        if (password.length < 9) return 'Debe tener más de 8 caracteres.';
+        if (!/[A-Z]/.test(password)) return 'Debe incluir al menos una mayúscula.';
+        if (!/[a-z]/.test(password)) return 'Debe incluir al menos una minúscula.';
+        if (!/\d/.test(password)) return 'Debe incluir al menos un número.';
+        if (!/[.!$#%*]/.test(password)) return 'Debe incluir al menos uno de estos caracteres especiales: . ! $ # % *';
+        if (!/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[.!$#%*])[A-Za-z\d.!$#%*]{9,}$/.test(password)) {
+            return 'Solo se permiten letras, números y estos caracteres especiales: . ! $ # % *';
+        }
+        return '';
+    };
+
     const cambiarPassword = async () => {
         setError('');
         if (!form.codigo.trim() || !form.password.trim()) return setError('Completa todos los campos');
-        if (form.password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres');
+        const passwordError = validatePassword(form.password);
+        if (passwordError) return setError(passwordError);
         setCargando(true);
         try {
             await api.resetPassword(form.email, form.codigo, form.password);
@@ -69,7 +83,23 @@ export default function RecuperarPassword() {
                             </div>
                             <div>
                                 <label style={s.label}>Nueva contraseña</label>
-                                <input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password:e.target.value }))} placeholder="••••••••" style={s.input} />
+                                <div style={s.inputWrap}>
+                                    <input type={showPassword ? 'text' : 'password'} value={form.password} onChange={e => setForm(p => ({ ...p, password:e.target.value }))} placeholder="••••••••" style={{ ...s.input, paddingRight:42 }} />
+                                    <button type="button" onClick={() => setShowPassword(v => !v)} style={s.toggleBtn} aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPassword ? (
+                                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M3 3l18 18" />
+                                            <path d="M10.6 10.6A2 2 0 0 0 13.4 13.4" />
+                                            <path d="M9.88 5.08A10.94 10.94 0 0 1 12 5c4.1 0 7.6 2.5 9 6a11.2 11.2 0 0 1-2.6 3.6" />
+                                            <path d="M6.61 6.61A10.94 10.94 0 0 0 3 11c1.4 3.5 4.9 6 9 6a10.1 10.1 0 0 0 3.4-.6" />
+                                        </svg>
+                                    ) : (
+                                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                                            <circle cx="12" cy="12" r="3" />
+                                        </svg>
+                                    )}</button>
+                                </div>
+                                <div style={s.helper}>Debe tener más de 8 caracteres, mayúscula, minúscula, número y uno de estos caracteres especiales: . ! $ # % *</div>
                             </div>
                         </>
                     )}
@@ -98,6 +128,9 @@ const s = {
     error:     { background:'#F43F5E15', border:'1px solid #F43F5E40', borderRadius:8, color:'var(--danger)', fontSize:13, padding:'10px 14px' },
     success:   { background:'#10B98115', border:'1px solid #10B98140', borderRadius:8, color:'var(--success)', fontSize:13, padding:'10px 14px' },
     label:     { display:'block', fontSize:12, color:'var(--muted)', marginBottom:6, fontWeight:500 },
+    helper:    { fontSize:12, color:'var(--muted)', marginTop:6, lineHeight:1.4 },
+    inputWrap: { position:'relative' },
+    toggleBtn: { position:'absolute', right:8, top:'50%', transform:'translateY(-50%)', background:'transparent', border:'none', cursor:'pointer', fontSize:16, color:'var(--muted)' },
     input:     { width:'100%', padding:'10px 14px', fontSize:14, borderRadius:8, border:'1px solid var(--border)', background:'var(--bg)', color:'var(--text)' },
     boton:     { width:'100%', padding:'12px 0', borderRadius:10, background:'var(--accent)', color:'#fff', fontSize:14, fontWeight:700, border:'none', cursor:'pointer' },
     footer:    { marginTop:24, textAlign:'center', fontSize:13, color:'var(--muted)' },

@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 
 const db = require('../config/db'); 
 const transporter = require('../config/mailer');
+const { validatePassword } = require('../utils/passwordValidator');
 const authController = {
 
     registro: async (req, res) => {
@@ -12,8 +13,10 @@ const authController = {
         if (!nombre || !email || !password) {
             return res.status(400).json({ error: 'Todos los campos son obligatorios' });
         }
-        if (password.length < 6) {
-            return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.valid) {
+            return res.status(400).json({ error: passwordValidation.error });
         }
 
         try {
@@ -105,6 +108,11 @@ const authController = {
     resetPassword: async (req, res) => {
         const { email, codigo, nuevaPassword } = req.body;
         try {
+            const passwordValidation = validatePassword(nuevaPassword);
+            if (!passwordValidation.valid) {
+                return res.status(400).json({ error: passwordValidation.error });
+            }
+
             // Verificar código y expiración
             const [rows] = await db.execute("SELECT * FROM codigos_recuperacion WHERE email = ? AND codigo = ? AND expiracion > NOW()", [email, codigo]);
             

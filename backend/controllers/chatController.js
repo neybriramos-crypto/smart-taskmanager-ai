@@ -31,7 +31,8 @@ const chatController = {
 
             res.json({ respuesta });
         } catch (error) {
-            console.error('[Chat] Error:', error.message);
+            console.error('[Chat] Error:', error.message || error);
+            if (error.code === 'NO_AI') return res.status(503).json({ error: 'IA no configurada en el servidor' });
             res.status(500).json({ error: error.message || 'Error al procesar el mensaje' });
         }
     },

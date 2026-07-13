@@ -16,8 +16,9 @@ const analisisController = {
             const analisis = await iaService.analizarProductividad(stats, tareas);
             res.json({ analisis, stats, tareas });
         } catch (error) {
-            console.error('[Analisis]', error.message);
-            res.status(500).json({ error: error.message });
+            console.error('[Analisis]', error.message || error);
+            if (error.code === 'NO_AI') return res.status(503).json({ error: 'IA no configurada en el servidor' });
+            res.status(500).json({ error: error.message || 'Error interno' });
         }
     },
 
@@ -30,8 +31,9 @@ const analisisController = {
             const orden = await iaService.priorizarTareas(pendientes);
             res.json({ orden });
         } catch (error) {
-            console.error('[Analisis] priorizar:', error.message);
-            res.status(500).json({ error: error.message });
+            console.error('[Analisis] priorizar:', error.message || error);
+            if (error.code === 'NO_AI') return res.status(503).json({ error: 'IA no configurada en el servidor' });
+            res.status(500).json({ error: error.message || 'Error interno' });
         }
     },
 };

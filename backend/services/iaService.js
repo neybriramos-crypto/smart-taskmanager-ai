@@ -13,7 +13,9 @@ if (!GEMINI_API_KEY) {
 
 function requireAI() {
     if (!ai) {
-        throw new Error('GEMINI_API_KEY no está configurado. Configura la variable de entorno GEMINI_API_KEY para usar las funciones de IA.');
+        const err = new Error('GEMINI_API_KEY no está configurado. Configura la variable de entorno GEMINI_API_KEY para usar las funciones de IA.');
+        err.code = 'NO_AI';
+        throw err;
     }
 }
 

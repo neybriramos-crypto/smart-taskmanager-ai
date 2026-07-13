@@ -48,14 +48,14 @@ export const api = {
     resetPassword:     (email, codigo, password) => apiClient.post('/api/auth/reset-password', { email, codigo, nuevaPassword: password }),
 
     // Tareas
-    obtenerTareas:   ()      => apiClient.get('/api/tareas'),
+    obtenerTareas:   (vista = 'todas') => apiClient.get('/api/tareas', { params: { vista } }),
     crearTarea:      (data)  => apiClient.post('/api/tareas',      data),
     actualizarTarea: (id, d) => apiClient.put(`/api/tareas/${id}`, d),
     eliminarTarea:   (id)    => apiClient.delete(`/api/tareas/${id}`),
 
     // Subtareas
     obtenerSubtareas:   (tid)      => apiClient.get(`/api/tareas/${tid}/subtareas`),
-    generarSubtareasIA: (tid)      => apiClient.post(`/api/tareas/${tid}/subtareas-ia`, {}),
+    generarSubtareasIA: (tid)      => apiClient.post(`/api/tareas/${tid}/subtareas-ia`, {}, { timeout: 30000 }),
     toggleSubtarea:     (sid, est) => apiClient.put(`/api/tareas/subtareas/${sid}/toggle`, { completada: est }),
     priorizarIA:        (tareas)   => apiClient.post('/api/tareas/priorizar-ia', { tareas }),
 
@@ -78,6 +78,10 @@ priorizarTareas:  () => fetch(`${BASE}/api/priorizar`, { headers: { ...(getToken
     aceptarInvitacion: (token)         => apiClient.post(`/api/equipos/invitacion/${token}/aceptar`, {},),
     cambiarRol:        (eid, mid, rol) => apiClient.put(`/api/equipos/${eid}/miembros/${mid}/rol`, { rol }),
     eliminarMiembro:   (eid, mid)      => apiClient.delete(`/api/equipos/${eid}/miembros/${mid}`),
+    listarArchivosSala: (eid)          => apiClient.get(`/api/equipos/${eid}/archivos`),
+    subirArchivoSala:  (eid, payload)  => apiClient.post(`/api/equipos/${eid}/archivos`, payload),
+    descargarArchivoSala: (eid, id)    => apiClient.get(`/api/equipos/${eid}/archivos/${id}`),
+    eliminarArchivoSala: (eid, id)     => apiClient.delete(`/api/equipos/${eid}/archivos/${id}`),
 
     // Configuración
     obtenerConfig:    ()     => apiClient.get('/api/config'),
