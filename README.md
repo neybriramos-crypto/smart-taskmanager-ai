@@ -1,85 +1,76 @@
 # Smart Task Manager AI
 
-Pequeño gestor de tareas con API en `backend/` y frontend Next.js en `frontend/`.
+Este proyecto es un gestor de tareas simple con:
+- backend en `backend/` usando Node.js, Express y MySQL
+- frontend en `frontend/` usando Next.js
 
-**Rápido — Qué hay aquí**
-- Backend: Node.js + Express + MySQL
-- Frontend: Next.js (App Router)
+## Qué hace
 
-## Requisitos
-- Node.js 18+ (en el repo se usa Node 24 localmente)
-- MySQL en ejecución
-- Variables de entorno (ver sección "Variables de entorno")
+- maneja usuarios con registro y login
+- guarda tareas personales y tareas de equipo
+- permite crear equipos y gestionar roles
+- usa IA opcionalmente para generar subtareas, priorizar tareas y hacer chat
+- envía correos para recuperar contraseña y notificaciones de tareas
 
-## Ejecutar localmente
+## Cómo correrlo
 
-Backend
+Primero instala en cada carpeta.
 
+Backend:
 ```powershell
 cd backend
 npm install
-npm run dev    # usa nodemon
+npm run dev
 ```
 
-Frontend
-
+Frontend:
 ```powershell
 cd frontend
 npm install
-npm run dev    # Next dev server (3000 por defecto)
+npm run dev
 ```
 
-Si el puerto 3000 o 5000 están ocupados, Next/Express subirán en el siguiente puerto disponible.
+Luego abre el navegador en `http://localhost:3000` si todo está bien.
 
-## Variables de entorno importantes
+## Requisitos
 
-- `PORT` (opcional) — puerto del backend (por defecto 5000)
-- `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` — conexión MySQL
-- `JWT_SECRET` — clave para JWT
-- `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM` — credenciales SMTP usadas por la funcionalidad de recuperación
-- `GEMINI_API_KEY` — opcional; si no está definida, las funciones AI no se inicializan pero el servidor sigue arrancando
-- `FRONTEND_URL` — URL del frontend para CORS (opcional)
+- Node.js 18+ (en el repo se usa Node 24)
+- MySQL corriendo
+- Variables de entorno en `backend/.env`
 
-Coloca estas variables en `backend/.env` (no comitear). Ya se añadió `.gitignore` para ignorarlo.
+## Variables importantes
 
-## Flujo de recuperación de contraseña
+En `backend/.env` necesitas estas:
 
-Endpoints principales:
-- `POST /api/auth/recuperar` — solicitar código de recuperación por email
-  - Body: `{ "email": "usuario@ejemplo.com" }`
-- `POST /api/auth/reset-password` — restablecer contraseña
-  - Body: `{ "email": "usuario@ejemplo.com", "codigo": "123456", "nuevaPassword": "nuevaClave" }`
+- `PORT` = puerto del backend (por defecto 5000)
+- `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` = datos de MySQL
+- `JWT_SECRET` = clave para los tokens
+- `EMAIL_USER`, `EMAIL_PASS`, `EMAIL_FROM` = para mandar correos
+- `GEMINI_API_KEY` = si no lo pones, la IA no funciona pero el servidor sí
+- `FRONTEND_URL` = URL del frontend para permitir CORS
 
-El backend crea la tabla `codigos_recuperacion` automáticamente si no existe. También hay un script en `backend/scripts/create_recovery_table.js` para crearla manualmente.
+## Recuperar contraseña
 
-## Base de datos
+Rutas principales:
+- `POST /api/auth/recuperar` con `{ email }`
+- `POST /api/auth/reset-password` con `{ email, codigo, nuevaPassword }`
 
-Crear la base de datos indicada en `DB_NAME` y las tablas de usuarios/tareas según tu esquema. Para desarrollo ya existen ejemplos en `backend/models/`.
-
-## Limpieza de variables comprometidas en Git
-
-Si `backend/.env` fue comiteado por error, ya lo he eliminado del índice en esta rama. Para aplicar lo mismo localmente:
-
-```powershell
-# Quitar del índice pero mantener el archivo local
-git rm --cached backend/.env
-git commit -m "chore: remove backend/.env from repo"
-git push
-```
-
-## Notas y debugging
-
-- Si el servidor Node falla en arranque por una dependencia opcional de AI, no debería ocurrir: la integración AI es opcional y el servidor sigue arrancando sin `GEMINI_API_KEY`.
-- Si recibes `ER_NO_SUCH_TABLE` al enviar el código de recuperación, ejecuta:
-
+El servidor crea la tabla de códigos de recuperación si no existe. Si da error, también puedes usar:
 ```powershell
 node backend/scripts/create_recovery_table.js
 ```
 
-## Contribuir
+## Notas rápidas
 
-- Añade issues o PRs para mejoras. Si necesitas que pruebe el flujo de recuperación con credenciales SMTP reales, pásamelas de forma segura fuera del repo.
+- Si no tienes `GEMINI_API_KEY`, el backend arranca igual.
+- Si ves errores con tablas faltantes, revisa la base de datos o ejecuta el script de creación.
+- El frontend y backend son independientes, pero se comunican por API.
 
----
+## Ideas para mejorar
 
-Si quieres que extienda este README con más ejemplos de uso, pruebas o diagramas, dime qué sección prefieres.
+- agregar tests
+- poner migraciones reales
+- mejorar el diseño del frontend
+- usar una base de datos mejor estructurada
+
+Listo. Si quieres, lo dejo aún más corto o agrego un diagrama básico de rutas. 
