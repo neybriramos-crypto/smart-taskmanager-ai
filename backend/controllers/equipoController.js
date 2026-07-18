@@ -1,10 +1,15 @@
+/**
+ * equipoController.js
+ * Controlador para equipos y colaboración. Maneja creación, consulta,
+ * invitaciones, roles y gestión de miembros.
+ */
 const Equipo     = require('../models/equipoModel');
 const Usuario    = require('../models/usuarioModel');
 const db         = require('../config/db');
 
 const equipoController = {
 
-    //Obtener todos los equipos del usuario
+    // Obtiene la lista de equipos donde participa el usuario.
     misEquipos: async (req, res) => {
         try {
             const equipos = await Equipo.findByUsuario(req.usuario.id);
@@ -26,7 +31,7 @@ const equipoController = {
         }
     },
 
-    //Crear un nuevo equipo
+    // Crea un equipo nuevo y agrega al usuario creador como admin.
     crear: async (req, res) => {
         const { nombre, descripcion } = req.body;
         const creador_id = req.usuario.id;
@@ -49,7 +54,7 @@ const equipoController = {
         }
     },
 
-    //Ver detalles completos de un equipo
+    // Devuelve los datos completos de un equipo, incluyendo miembros, tareas y invitaciones.
     detalle: async (req, res) => {
         try {
             const equipo = await Equipo.findById(req.params.id);
@@ -74,7 +79,7 @@ const equipoController = {
         }
     },
 
-    //Actualizar datos informativos del equipo
+    // Actualiza el nombre o descripción del equipo cuando el usuario es admin.
     actualizar: async (req, res) => {
         try {
             const miembro = await Equipo.getMiembro(req.params.id, req.usuario.id);
@@ -89,7 +94,7 @@ const equipoController = {
         }
     },
 
-    //Remover equipo del sistema
+    // Elimina un equipo completo si el usuario es el creador original.
     eliminar: async (req, res) => {
         try {
             const equipo = await Equipo.findById(req.params.id);
@@ -111,7 +116,7 @@ const equipoController = {
         }
     },
 
-    //Enviar invitación dirigida por correo electrónico
+    // Envía una invitación por correo o agrega directo a usuarios existentes.
     invitar: async (req, res) => {
         const { email, rol = 'lector' } = req.body;
         const equipo_id = req.params.id;
@@ -149,7 +154,7 @@ const equipoController = {
         }
     },
 
-    //Crear Enlace de Acceso Rápido / Compartible
+    // Genera un enlace de invitación para que otros usuarios se unan al equipo.
     generarEnlaceInvitacion: async (req, res) => {
         const { id } = req.params; 
         const { rol = 'lector' } = req.body; 
@@ -186,7 +191,7 @@ const equipoController = {
         }
     },
 
-    //Validar y consumir invitación de enlace
+    // Acepta un token de invitación y agrega al usuario al equipo.
     aceptarInvitacion: async (req, res) => {
         try {
             const [rows] = await db.query('SELECT * FROM invitaciones WHERE token = ?', [req.params.token]);
@@ -205,7 +210,7 @@ const equipoController = {
         }
     },
 
-    //Reasignar privilegios jerárquicos de un miembro
+    // Cambia el rol de un miembro dentro del equipo (admin/editor/lector).
     cambiarRol: async (req, res) => {
         const { equipo_id, miembro_id } = req.params;
         const { rol } = req.body;
@@ -229,7 +234,7 @@ const equipoController = {
         }
     },
 
-    //Remover o expulsar un miembro del equipo
+    // Elimina a un miembro del equipo cuando el solicitante tiene permisos.
     eliminarMiembro: async (req, res) => {
         const { equipo_id, miembro_id } = req.params;
         try {

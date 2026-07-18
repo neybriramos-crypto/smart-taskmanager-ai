@@ -429,7 +429,7 @@ export default function Dashboard() {
                 </header>
 
                 {/* Stats */}
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:28 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,minmax(0,1fr))', gap:12, marginBottom:28, '@media (max-width: 900px)': { gridTemplateColumns:'repeat(2,1fr)' } }}>
                     {[
                         { label:'Total',       value:stats.total,       color:'var(--muted)'   },
                         { label:'Pendientes',  value:stats.pendientes,  color:'var(--warning)' },
@@ -497,7 +497,7 @@ export default function Dashboard() {
                         </button>
                     </div>
                 ) : (
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:16 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))', gap:16 }}>
                         {tareasFiltradas.map(tarea => {
                             const p       = PRIORIDAD_C[tarea.prioridad] || PRIORIDAD_C.baja;
                             const st      = tarea.subtareas || [];

@@ -1,6 +1,12 @@
+/**
+ * tareaModel.js
+ * Modelo de tareas con las operaciones básicas para crear, listar,
+ * actualizar y eliminar tareas en la base de datos.
+ */
 const db = require('../config/db');
 
 const Tarea = {
+    // Inserta una nueva tarea en la base de datos.
     create: async (usuario_id, titulo, descripcion, prioridad, fecha_limite, equipo_id, asignado_a) => {
         const [result] = await db.query(
             `INSERT INTO tareas (usuario_id, titulo, descripcion, prioridad, fecha_limite, equipo_id, asignado_a)
@@ -10,6 +16,7 @@ const Tarea = {
         return result.insertId;
     },
 
+    // Recupera todas las tareas que pertenecen a un usuario, con filtro opcional.
     findAllByUsuario: async (usuario_id, vista = 'todas') => {
         let query = '';
         let params = [usuario_id];
@@ -42,6 +49,7 @@ const Tarea = {
         return rows;
     },
 
+    // Busca una tarea específica por id y usuario.
     findById: async (id, usuario_id) => {
         const [rows] = await db.query(
             `SELECT * FROM tareas WHERE id = ? AND usuario_id = ?`,
@@ -50,9 +58,18 @@ const Tarea = {
         return rows[0] || null;
     },
 
+    // Actualiza campos de una tarea y reinicia notificaciones si cambian datos clave.
     update: async (id, usuario_id, datos) => {
+        const [rowsPrev] = await db.query(
+            'SELECT fecha_limite, asignado_a, estado FROM tareas WHERE id = ? AND usuario_id = ?',
+            [id, usuario_id]
+        );
+        if (rowsPrev.length === 0) return false;
+
+        const previo = rowsPrev[0];
         const fields = [];
         const values = [];
+        let resetNotificaciones = false;
 
         if (datos.titulo       !== undefined) { fields.push('titulo = ?');       values.push(datos.titulo); }
         if (datos.descripcion  !== undefined) { fields.push('descripcion = ?');  values.push(datos.descripcion); }
@@ -60,6 +77,21 @@ const Tarea = {
         if (datos.estado       !== undefined) { fields.push('estado = ?');       values.push(datos.estado); }
         if (datos.fecha_limite !== undefined) { fields.push('fecha_limite = ?'); values.push(datos.fecha_limite); }
         if (datos.asignado_a   !== undefined) { fields.push('asignado_a = ?');   values.push(datos.asignado_a); }
+
+        if (datos.fecha_limite !== undefined && datos.fecha_limite !== previo.fecha_limite) {
+            resetNotificaciones = true;
+        }
+        if (datos.asignado_a !== undefined && datos.asignado_a !== previo.asignado_a) {
+            resetNotificaciones = true;
+        }
+        if (datos.estado !== undefined && datos.estado !== previo.estado && datos.estado !== 'completada') {
+            resetNotificaciones = true;
+        }
+
+        if (resetNotificaciones) {
+            fields.push('recordatorio_enviado = 0');
+            fields.push('notificada = 0');
+        }
 
         if (fields.length === 0) return false;
 
@@ -71,6 +103,7 @@ const Tarea = {
         return result.affectedRows > 0;
     },
 
+    // Elimina una tarea si pertenece al usuario.
     delete: async (id, usuario_id) => {
         const [result] = await db.query(
             `DELETE FROM tareas WHERE id = ? AND usuario_id = ?`,

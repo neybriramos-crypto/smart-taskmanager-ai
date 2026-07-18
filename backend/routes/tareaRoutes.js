@@ -1,3 +1,7 @@
+/**
+ * tareaRoutes.js
+ * Rutas relacionadas con tareas y subtareas. Todas requieren autenticación.
+ */
 const express         = require('express');
 const router          = express.Router();
 const tareaController = require('../controllers/tareaController');

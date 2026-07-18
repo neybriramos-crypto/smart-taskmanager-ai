@@ -24,7 +24,7 @@ export default function Sidebar({ usuario, progreso = 0, total = 0, completadas 
     };
 
     return (
-        <aside style={s.aside}>
+        <aside className="sidebar-mobile" style={s.aside}>
             <div style={s.logo}>
                 <div style={s.logoBadge}>✦</div>
                 <span style={s.logoText}>Smart Tasks <span style={{ color:'var(--accent)' }}>AI</span></span>
@@ -62,7 +62,7 @@ export default function Sidebar({ usuario, progreso = 0, total = 0, completadas 
 }
 
 const s = {
-    aside:        { position:'fixed', top:0, left:0, width:220, height:'100vh', background:'var(--surface)', borderRight:'1px solid var(--border)', display:'flex', flexDirection:'column', padding:'20px 12px', zIndex:100, gap:4 },
+    aside:        { position:'fixed', top:0, left:0, width:220, height:'100vh', background:'var(--surface)', borderRight:'1px solid var(--border)', display:'flex', flexDirection:'column', padding:'20px 12px', zIndex:100, gap:4, overflowY:'auto' },
     logo:         { display:'flex', alignItems:'center', gap:10, marginBottom:24, paddingLeft:4 },
     logoBadge:    { width:30, height:30, borderRadius:7, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'#fff' },
     logoText:     { fontSize:14, fontWeight:700, color:'var(--text)' },

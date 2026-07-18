@@ -1,3 +1,8 @@
+/**
+ * usuarioModel.js
+ * Modelo de usuario que maneja consultas básicas a la tabla usuarios.
+ * Aquí se busca por email, por id y se crea un usuario nuevo.
+ */
 const db = require('../config/db');
 
 const Usuario = {

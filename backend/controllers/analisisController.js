@@ -1,8 +1,13 @@
+/**
+ * analisisController.js
+ * Controlador para los endpoints de análisis y priorización con IA.
+ */
 const Tarea     = require('../models/tareaModel');
 const iaService = require('../services/iaService');
 
 const analisisController = {
 
+    // Obtiene los datos del usuario y solicita un análisis de productividad a la IA.
     obtenerAnalisis: async (req, res) => {
         const usuario_id = req.usuario.id;
         try {
@@ -22,6 +27,7 @@ const analisisController = {
         }
     },
 
+    // Solicita a la IA un orden de prioridad para las tareas pendientes.
     priorizarTareas: async (req, res) => {
         const usuario_id = req.usuario.id;
         try {

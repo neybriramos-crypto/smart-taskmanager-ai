@@ -1,3 +1,7 @@
+/**
+ * analisisRoutes.js
+ * Rutas para pedir análisis y priorización de tareas usando IA.
+ */
 const express             = require('express');
 const router              = express.Router();
 const analisisController  = require('../controllers/analisisController');

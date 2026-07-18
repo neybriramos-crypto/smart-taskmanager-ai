@@ -1,3 +1,7 @@
+/**
+ * recuperacionRoutes.js
+ * Rutas para enviar códigos de recuperación y resetear password.
+ */
 const express = require('express');
 const router = express.Router();
 const recuperacionController = require('../controllers/recuperacionController');

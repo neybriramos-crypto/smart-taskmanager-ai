@@ -1,3 +1,7 @@
+/**
+ * authMiddleware.js
+ * Valida el token JWT enviado por el cliente y agrega el usuario al request.
+ */
 const jwt = require('jsonwebtoken');
 
 module.exports = (req, res, next) => {

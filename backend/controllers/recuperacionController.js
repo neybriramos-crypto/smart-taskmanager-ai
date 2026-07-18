@@ -1,3 +1,7 @@
+/**
+ * recuperacionController.js
+ * Controlador para recuperar contraseña mediante correo y código temporal.
+ */
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
@@ -12,6 +16,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const recuperacionController = {
+    // Envía un código de recuperación al correo del usuario.
     enviarCodigo: async (req, res) => {
         const { email } = req.body;
         if (!email) return res.status(400).json({ error: 'El email es obligatorio' });
@@ -74,6 +79,7 @@ const recuperacionController = {
         }
     },
 
+    // Cambia la contraseña solo si el código de recuperación es válido.
     resetPassword: async (req, res) => {
         const { email, codigo, nuevaPassword } = req.body;
         if (!email || !codigo || !nuevaPassword) {

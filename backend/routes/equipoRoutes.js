@@ -1,3 +1,8 @@
+/**
+ * equipoRoutes.js
+ * Rutas para la gestión de equipos, invitaciones, roles y archivos compartidos.
+ * Todas requieren autenticación.
+ */
 const express          = require('express');
 const router           = express.Router();
 const equipoController = require('../controllers/equipoController');

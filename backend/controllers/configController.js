@@ -1,3 +1,7 @@
+/**
+ * configController.js
+ * Controlador que permite al usuario ver y actualizar su configuración y perfil.
+ */
 const Config  = require('../models/configModel');
 const Usuario = require('../models/usuarioModel');
 const bcrypt  = require('bcryptjs');
@@ -6,6 +10,7 @@ const { validatePassword } = require('../utils/passwordValidator');
 
 const configController = {
 
+    // Devuelve la configuración del usuario y sus datos básicos.
     obtener: async (req, res) => {
         try {
             const config  = await Config.get(req.usuario.id);
@@ -14,6 +19,7 @@ const configController = {
         } catch (err) { res.status(500).json({ error: 'Error al obtener configuración' }); }
     },
 
+    // Actualiza opciones de configuración del usuario como notificaciones o tema.
     actualizar: async (req, res) => {
         try {
             await Config.update(req.usuario.id, req.body);
@@ -21,6 +27,7 @@ const configController = {
         } catch (err) { res.status(500).json({ error: 'Error al guardar configuración' }); }
     },
 
+    // Actualiza el nombre y/o avatar del perfil del usuario.
     actualizarPerfil: async (req, res) => {
         const { nombre, avatar } = req.body;
         try {
@@ -34,6 +41,7 @@ const configController = {
         } catch (err) { res.status(500).json({ error: 'Error al actualizar perfil' }); }
     },
 
+    // Cambia la contraseña actual tras verificar la contraseña antigua.
     cambiarPassword: async (req, res) => {
         const { password_actual, password_nueva } = req.body;
         if (!password_actual || !password_nueva)
@@ -53,6 +61,7 @@ const configController = {
         } catch (err) { res.status(500).json({ error: 'Error al cambiar contraseña' }); }
     },
 
+    // Elimina la cuenta del usuario si confirma con su contraseña.
     eliminarCuenta: async (req, res) => {
         const { password } = req.body;
         if (!password) return res.status(400).json({ error: 'Confirma con tu contraseña' });

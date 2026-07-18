@@ -3,6 +3,12 @@ const Tarea = require('../models/tareaModel');
 const iaService = require('../services/iaService');
 
 /**
+ * tareaController.js
+ * Controlador principal de tareas. Aquí se crean, consultan, actualizan, eliminan
+ * tareas y se integran funciones extra para subtareas y priorización con IA.
+ */
+
+/**
  * Detecta si un error proviene de sobrecarga temporal del servicio de IA (503),
  * para devolver al cliente un código y mensaje más útiles que un 500 genérico.
  */
@@ -14,7 +20,7 @@ function esErrorSobrecargaIA(error) {
 
 const tareaController = {
 
-    //Crear tarea
+    // Crear una nueva tarea y notificarla por socket si aplica.
     crearTarea: async (req, res) => {
         const { titulo, descripcion, prioridad, fecha_limite, equipo_id, asignado_a } = req.body;
         const usuario_id = req.usuario.id;
@@ -57,7 +63,7 @@ const tareaController = {
         }
     },
 
-    //Obtener todas las tareas
+    // Obtener todas las tareas del usuario según la vista solicitada.
     obtenerTareas: async (req, res) => {
         const usuario_id = req.usuario.id;
         const vista = req.query.vista || 'todas';
@@ -70,7 +76,7 @@ const tareaController = {
         }
     },
 
-    //Actualizar tarea
+    // Actualiza una tarea existente si el usuario tiene permiso.
     actualizarTarea: async (req, res) => {
         const { id }     = req.params;
         const usuario_id = req.usuario.id;
@@ -93,7 +99,7 @@ const tareaController = {
         }
     },
 
-    //Eliminar tarea
+    // Elimina una tarea del usuario autenticado.
     eliminarTarea: async (req, res) => {
         const { id }     = req.params;
         const usuario_id = req.usuario.id;
@@ -114,7 +120,7 @@ const tareaController = {
         }
     },
 
-    //Generar subtareas con IA
+    // Genera subtareas automáticas usando IA para una tarea existente.
     generarSubtareasIA: async (req, res) => {
         const tareaId    = req.params.id;
         const usuario_id = req.usuario.id;
@@ -171,7 +177,7 @@ const tareaController = {
         }
     },
 
-    //Obtener subtareas de una tarea
+    // Recupera las subtareas guardadas de una tarea específica.
     obtenerSubtareas: async (req, res) => {
         try {
             const [subtareas] = await db.query(
@@ -186,7 +192,7 @@ const tareaController = {
         }
     },
 
-    //Toggle completar subtarea
+    // Cambia el estado de completado de una subtarea.
     conmutarSubtarea: async (req, res) => {
         const { completada }  = req.body;
         const { subtareaId }  = req.params;
@@ -203,7 +209,7 @@ const tareaController = {
         }
     },
 
-    //Priorizar tareas con IA
+    // Pide a la IA que sugiera un orden de prioridad para varias tareas.
     priorizarTareasIA: async (req, res) => {
         const { tareas } = req.body;
 

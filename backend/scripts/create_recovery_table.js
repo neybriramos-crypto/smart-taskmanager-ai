@@ -1,3 +1,8 @@
+/**
+ * create_recovery_table.js
+ * Script para crear la tabla de códigos de recuperación si no existe.
+ * Se puede ejecutar manualmente cuando se configura la base de datos.
+ */
 const db = require('../config/db');
 
 async function createTable() {

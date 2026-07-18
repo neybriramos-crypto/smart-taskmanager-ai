@@ -1,3 +1,8 @@
+/**
+ * authController.js
+ * Controlador que maneja todo lo relacionado con usuarios, autenticación y recuperación.
+ * Aquí están las funciones para registrar, iniciar sesión, ver el perfil y recuperar contraseña.
+ */
 const Usuario = require('../models/usuarioModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -7,6 +12,7 @@ const transporter = require('../config/mailer');
 const { validatePassword } = require('../utils/passwordValidator');
 const authController = {
 
+    // Crea un usuario nuevo después de validar los datos y asegurar la contraseña.
     registro: async (req, res) => {
         const { nombre, email, password } = req.body;
 
@@ -36,6 +42,7 @@ const authController = {
         }
     },
 
+    // Valida credenciales y devuelve un token JWT para el usuario autenticado.
     login: async (req, res) => {
         const { email, password } = req.body;
 
@@ -71,6 +78,7 @@ const authController = {
         }
     },
 
+    // Devuelve la información básica del usuario actual autenticado.
     perfil: async (req, res) => {
         try {
             const usuario = await Usuario.findById(req.usuario.id);
@@ -82,6 +90,7 @@ const authController = {
         }
     },
 
+    // Envía un código temporal al correo para recuperar la contraseña.
     recuperar: async (req, res) => {
         const { email } = req.body;
         try {
@@ -105,6 +114,7 @@ const authController = {
         }
     },
 
+    // Cambia la contraseña cuando el usuario presenta un código válido de recuperación.
     resetPassword: async (req, res) => {
         const { email, codigo, nuevaPassword } = req.body;
         try {

@@ -1,9 +1,14 @@
+/**
+ * chatController.js
+ * Controlador que gestiona el chat con IA, el historial y la limpieza de mensajes.
+ */
 const Chat      = require('../models/chatModel');
 const Tarea     = require('../models/tareaModel');
 const iaService = require('../services/iaService');
 
 const chatController = {
 
+    // Recibe un mensaje del usuario, lo guarda y pide respuesta a la IA.
     enviarMensaje: async (req, res) => {
         const { mensaje } = req.body;
         const usuario_id  = req.usuario.id;
@@ -37,6 +42,7 @@ const chatController = {
         }
     },
 
+    // Devuelve el historial de chat del usuario en orden cronológico.
     obtenerHistorial: async (req, res) => {
         try {
             const historial = await Chat.obtenerHistorial(req.usuario.id, 30);
@@ -46,6 +52,7 @@ const chatController = {
         }
     },
 
+    // Borra todo el historial de chat del usuario actual.
     limpiarHistorial: async (req, res) => {
         try {
             await Chat.limpiarHistorial(req.usuario.id);

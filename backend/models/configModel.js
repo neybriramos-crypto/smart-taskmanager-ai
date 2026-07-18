@@ -1,3 +1,8 @@
+/**
+ * configModel.js
+ * Modelo para la tabla de configuración de usuario.
+ * Aquí se obtiene y actualiza la configuración personal del usuario.
+ */
 const db = require('../config/db');
 
 const Config = {

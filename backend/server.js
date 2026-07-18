@@ -1,3 +1,8 @@
+/**
+ * server.js
+ * Punto de entrada del backend. Configura Express, Socket.IO, rutas y CORS.
+ * También inicia el cron de notificaciones para correos automáticos.
+ */
 require('dotenv').config();
 require('./cron/notificacionesCron');
 

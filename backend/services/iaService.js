@@ -1,3 +1,8 @@
+/**
+ * iaService.js
+ * Servicio que llama a la API de IA de Gemini para generar subtareas,
+ * priorizar tareas, responder chat y analizar productividad.
+ */
 const { GoogleGenAI } = require("@google/genai");
 
 // Validar que la variable de entorno esté presente y sea no vacía

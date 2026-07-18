@@ -1,3 +1,8 @@
+/**
+ * passwordValidator.js
+ * Utilidad para validar strenght de contraseñas.
+ * Revisa mayúsculas, minúsculas, números y caracteres especiales.
+ */
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[.!$#%*])[A-Za-z\d.!$#%*]{9,}$/;
 
 function validatePassword(password) {

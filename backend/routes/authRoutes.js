@@ -1,3 +1,8 @@
+/**
+ * authRoutes.js
+ * Rutas públicas para registro, login y recuperación de contraseña.
+ * La ruta /perfil requiere token válido.
+ */
 const express        = require('express');
 const router         = express.Router();
 const authController = require('../controllers/authController');

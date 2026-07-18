@@ -1,3 +1,7 @@
+/**
+ * db.js
+ * Configura la conexión a MySQL usando mysql2 y exporta un pool con promesas.
+ */
 const mysql = require('mysql2');
 
 const pool = mysql.createPool({

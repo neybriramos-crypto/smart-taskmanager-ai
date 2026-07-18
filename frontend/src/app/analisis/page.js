@@ -76,14 +76,14 @@ export default function Analisis() {
         <div style={{ minHeight:'100vh', background:'var(--bg)', color:'var(--text)' }}>
             <Sidebar usuario={usuario} progreso={progreso} total={stats.total} completadas={stats.completadas}/>
 
-            <main style={{ marginLeft:220, padding:'28px 32px' }}>
+            <main style={{ marginLeft:220, padding:'28px 32px', boxSizing:'border-box', width:'calc(100% - 220px)' }}>
                 <header style={{ marginBottom:28 }}>
                     <h1 style={{ margin:0, fontSize:22, fontWeight:700 }}>Análisis IA</h1>
                     <p style={{ margin:'4px 0 0', fontSize:13, color:'var(--muted)' }}>La IA analiza tu carga de trabajo y te da recomendaciones</p>
                 </header>
 
                 {/* Métricas */}
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:12, marginBottom:24 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(5,minmax(0,1fr))', gap:12, marginBottom:24 }}>
                     {[
                         { label:'Total',       value:stats.total,       color:'var(--muted)'   },
                         { label:'Completadas', value:stats.completadas, color:'var(--success)' },
@@ -115,7 +115,7 @@ export default function Analisis() {
                     </div>
                 </div>
 
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:20, marginBottom:20 }}>
 
                     {/* Alertas */}
                     <div style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:'20px 24px' }}>

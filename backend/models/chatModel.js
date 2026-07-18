@@ -1,3 +1,7 @@
+/**
+ * chatModel.js
+ * Modelo de historial de chat. Guarda mensajes del usuario y de la IA.
+ */
 const db = require('../config/db');
 
 const Chat = {

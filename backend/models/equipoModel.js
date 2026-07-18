@@ -1,7 +1,11 @@
+/**
+ * equipoModel.js
+ * Modelo para equipos colaborativos, miembros y relaciones de equipo.
+ */
 const db = require('../config/db');
 
 const Equipo = {
-    //Buscar todos los equipos a los que pertenece un usuario
+    // Buscar todos los equipos a los que pertenece un usuario
     findByUsuario: async (usuario_id) => {
         const query = `
             SELECT e.*, me.rol AS mi_rol 

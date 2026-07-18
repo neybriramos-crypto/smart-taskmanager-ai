@@ -1,3 +1,7 @@
+/**
+ * invitacionModel.js
+ * Modelo para crear, buscar y aceptar invitaciones de equipo.
+ */
 const db     = require('../config/db');
 const crypto = require('crypto');
 

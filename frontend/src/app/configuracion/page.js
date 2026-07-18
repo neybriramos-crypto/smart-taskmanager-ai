@@ -130,7 +130,7 @@ export default function Configuracion() {
     return (
         <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
             <Sidebar usuario={usuario} />
-            <main style={{ marginLeft: 220, padding: '28px 32px' }}>
+            <main style={{ marginLeft: 220, padding: '28px 32px', boxSizing:'border-box', width:'calc(100% - 220px)' }}>
 
                 {/* Notificación flash */}
                 {msg.texto && (
@@ -142,7 +142,7 @@ export default function Configuracion() {
                     </div>
                 )}
 
-                <div style={{ display:'grid', gridTemplateColumns:'200px 1fr', gap:20 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'200px 1fr', gap:20, alignItems:'start' }}>
                     {/* Sidebar de tabs */}
                     <nav style={{ background:'var(--surface)', border:'1px solid var(--border)', borderRadius:14, padding:8, height:'fit-content' }}>
                         {TABS.map(({ k, icon, label }) => (
@@ -281,7 +281,7 @@ export default function Configuracion() {
                         {tab === 'apariencia' && (
                             <>
                                 <SectionTitle icon="▦" title="Tema de la interfaz"/>
-                                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                                <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:12 }}>
                                     {[
                                         { v:'oscuro', label:'Oscuro', emoji:'🌙', desc:'Fondo negro azulado' },
                                         { v:'claro',  label:'Claro',  emoji:'☀️', desc:'Fondo blanco limpio' },

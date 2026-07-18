@@ -1,3 +1,8 @@
+/**
+ * archivoSalaController.js
+ * Controlador para la subida, listado, descarga y eliminación de archivos de sala.
+ * Cada archivo pertenece a un equipo y se guarda en la base de datos.
+ */
 const db = require('../config/db');
 const Equipo = require('../models/equipoModel');
 
@@ -19,6 +24,7 @@ const crearTablaSiNoExiste = async () => {
 };
 
 const archivoSalaController = {
+    // Lista todos los archivos compartidos del equipo al que pertenece el usuario.
     listar: async (req, res) => {
         try {
             await crearTablaSiNoExiste();
@@ -45,6 +51,7 @@ const archivoSalaController = {
         }
     },
 
+    // Sube un archivo al equipo guardándolo como base64 en la base de datos.
     subir: async (req, res) => {
         try {
             await crearTablaSiNoExiste();
@@ -84,6 +91,7 @@ const archivoSalaController = {
         }
     },
 
+    // Descarga un archivo específico del equipo si el usuario está autorizado.
     descargar: async (req, res) => {
         try {
             await crearTablaSiNoExiste();
@@ -112,6 +120,7 @@ const archivoSalaController = {
         }
     },
 
+    // Elimina un archivo del equipo, solo permitido para administradores.
     eliminar: async (req, res) => {
         try {
             await crearTablaSiNoExiste();

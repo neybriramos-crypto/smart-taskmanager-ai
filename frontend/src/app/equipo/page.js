@@ -376,7 +376,7 @@ export default function Equipo() {
                             </div>
                         )}
 
-                        <div style={{ display:'grid', gridTemplateColumns:'1fr 300px', gap:20, marginTop:24 }}>
+                        <div style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) 300px', gap:20, marginTop:24 }}>
                             {/* Tareas */}
                             <div>
                                 <p style={sec.titulo}>Tareas del equipo</p>

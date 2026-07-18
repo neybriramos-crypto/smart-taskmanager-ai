@@ -1,3 +1,7 @@
+/**
+ * mailer.js
+ * Configura el transportador SMTP para enviar correos desde el backend.
+ */
 const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
